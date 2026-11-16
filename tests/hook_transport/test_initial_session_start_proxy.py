@@ -6,11 +6,15 @@ No fixture implements proxy execution, merging or registration projection.
 import base64
 from copy import deepcopy
 import json
+import math
+import os
 from pathlib import Path
 
 import pytest
 
 from poise.modules.hook_transport.domain import MissingHookBinding
+from poise.execution import RegisteredCheckRunner, RegisteredLaunchFailure
+from poise.infrastructure.session_establishment import cleanup_project_session_runtime
 from .initial_proxy_support import Scene, invoke, literal
 
 
@@ -70,6 +74,33 @@ def test_legacy_error_positive_control(scene, code, diagnostic):
         (b'{}\n', b'', 0), (b'{}\n', b'', 0)]
 
 
+def test_runner_spawn_exception_positive_control(tmp_path):
+    runner = RegisteredCheckRunner()
+    stdout, stderr = tmp_path / 'stdout', tmp_path / 'stderr'
+    with pytest.raises(RegisteredLaunchFailure) as failure:
+        runner.run('missing-process', [str(tmp_path / 'absent-executable')],
+                   tmp_path, dict(os.environ), 1, stdout, stderr)
+    assert isinstance(failure.value.__cause__, OSError)
+    assert 'absent-executable' in str(failure.value)
+    assert stdout.read_bytes() == stderr.read_bytes() == b''
+    assert runner.active_ids() == ()
+
+
+def test_session_cleanup_setup_positive_control(scene):
+    """Validate the existing owner/arrangement, not the missing proxy captures."""
+    first = scene.prepare_session('cleanup-control-a')
+    second = scene.prepare_session('cleanup-control-b')
+    assert first != second
+    first.mkdir(parents=True, exist_ok=True)
+    second.mkdir(parents=True, exist_ok=True)
+    (first / 'fixture-marker.txt').write_bytes(b'first session working data')
+    (second / 'fixture-marker.txt').write_bytes(b'second session working data')
+    cleanup_project_session_runtime(scene.services[1].settings.project_config,
+                                    scene.bindings['cleanup-control-a']['session_id'])
+    assert not first.exists()
+    assert (second / 'fixture-marker.txt').read_bytes() == b'second session working data'
+
+
 def test_publish_replaces_three_entries_and_preserves_other_events(scene):
     # This control must succeed before the absent feature is called RED.
     assert [result.returncode for result in scene.legacy(scene.raw_event())] == [0, 0, 0]
@@ -81,7 +112,12 @@ def test_publish_replaces_three_entries_and_preserves_other_events(scene):
     assert {k: v for k, v in actual['hooks'].items() if k != 'SessionStart'} == {
         k: v for k, v in scene.before['hooks'].items() if k != 'SessionStart'}
     assert handler['async'] is False
-    assert handler['timeout'] >= 45
+    # Existing RegisteredCheckRunner default cleanup is 0.25 seconds per child.
+    # Three literal deadlines plus cleanup and a positive 0.25-second
+    # orchestration allowance require 46 seconds, without a slow benchmark.
+    assert [group['hooks'][0]['timeout'] for group in scene.members] == [15, 15, 15]
+    required_budget = 15 + 15 + 15 + 3 * 0.25 + 0.25
+    assert math.isfinite(handler['timeout']) and handler['timeout'] >= required_budget
     assert handler['additionalContextLimit'] >= 6002
     # Round trip exercises owned logical snapshot without fixing its private schema.
     assert scene.operation('restore')[0] == 0
@@ -161,6 +197,7 @@ def test_proxy_retains_aggregate_multibyte_context_above_old_limit(scene):
 @pytest.mark.parametrize('code,diagnostic', [
     (1, b'legacy ordinary failure\n'), (2, b'legacy blocking reason\n')])
 def test_proxy_preserves_outward_error_and_full_capture(scene, code, diagnostic):
+    scene.prepare_session()
     scene.outcome(0, stdout=b'', stderr=diagnostic, code=code)
     handler = scene.publish()
     result = invoke(handler['command'], scene.raw_event(), scene.root)
@@ -173,11 +210,17 @@ def test_proxy_preserves_outward_error_and_full_capture(scene, code, diagnostic)
     assert_member_capture(scene, b'', diagnostic, code)
 
 
-def runner_records(scene):
+def session_documents(scene, session='proxy-fixture-session'):
+    root = scene.capture_roots[session]
+    for path in root.rglob('*.json'):
+        yield path, json.loads(path.read_text())
+
+
+def runner_records(scene, session='proxy-fixture-session'):
     """Observe existing runner stream references in product-owned JSON receipts.
 
-    Test probe records are excluded. Do not let the fixture's own stdout/stderr
-    options, preview or bare text search stand in for a real complete capture.
+    Only the exact runtime resolved by the actual native binding is admitted.
+    Project-wide logs and fixture probe options are outside this session owner.
     """
     def records(value):
         if isinstance(value, dict):
@@ -190,27 +233,30 @@ def runner_records(scene):
                 yield from records(child)
 
     captures = []
-    for path in scene.owner_root.rglob('*.json'):
-        try:
-            captures.extend(records(json.loads(path.read_text())))
-        except (UnicodeError, json.JSONDecodeError):
-            continue
+    for _, value in session_documents(scene, session):
+        captures.extend(records(value))
     return captures
 
 
-def assert_member_capture(scene, stdout, stderr, code):
+def assert_member_capture(scene, stdout, stderr, code, session='proxy-fixture-session'):
     matches = []
-    for record in runner_records(scene):
+    root = scene.capture_roots[session]
+    for record in runner_records(scene, session):
         if (record['actual_exit_code'] == code and
                 isinstance(record['stdout'], str) and isinstance(record['stderr'], str)):
             out, err = Path(record['stdout']), Path(record['stderr'])
             if out.is_file() and err.is_file() and out.read_bytes() == stdout and err.read_bytes() == stderr:
+                assert out.is_absolute() and err.is_absolute()
+                assert out.is_relative_to(root) and err.is_relative_to(root)
+                assert out != err and out.parent == err.parent
                 matches.append(record)
     assert matches, 'No product-owned runner receipt references complete expected member streams'
     assert all(record['capture_complete'] is True for record in matches)
+    return {(record['stdout'], record['stderr']) for record in matches}
 
 
 def test_proxy_keeps_diagnostic_order_and_blocking_precedence(scene):
+    scene.prepare_session()
     scene.outcome(0, stdout=b'', stderr=b'first diagnostic\n', code=1)
     scene.outcome(1, stdout=b'', stderr=b'second diagnostic\n', code=2)
     handler = scene.publish()
@@ -223,6 +269,7 @@ def test_proxy_keeps_diagnostic_order_and_blocking_precedence(scene):
 
 @pytest.mark.parametrize('failure', ['invalid-json', 'timeout', 'start-error'])
 def test_proxy_records_failure_and_executes_later_members(scene, failure):
+    scene.prepare_session()
     if failure == 'invalid-json':
         scene.outcome(0, stdout=b'not JSON\n')
     elif failure == 'timeout':
@@ -245,6 +292,57 @@ def test_proxy_records_failure_and_executes_later_members(scene, failure):
     else:
         assert any(row.get('actual_exit_code') == 127 and row.get('capture_complete') is True
                    for row in runner_records(scene)), 'Missing legacy executable must retain its real exit 127'
+
+
+def test_proxy_captures_belong_to_session_and_invocation_and_follow_cleanup(scene):
+    first_root = scene.prepare_session('capture-session-a')
+    second_root = scene.prepare_session('capture-session-b')
+    assert first_root != second_root
+    handler = scene.publish()
+    captures = []
+    for session, delivery, diagnostic in [
+        ('capture-session-a', 'a-first', b'capture A first\n'),
+        ('capture-session-a', 'a-second', b'capture A second\n'),
+        ('capture-session-b', 'b-first', b'capture B first\n'),
+    ]:
+        raw = scene.raw_event(session=session, delivery=delivery)
+        scene.outcome(0, stdout=b'', stderr=diagnostic, code=1)
+        result = invoke(handler['command'], raw, scene.root, session)
+        assert (result.stdout, result.stderr, result.returncode) == (b'{}\n', diagnostic, 1)
+        calls = scene.calls()[-3:]
+        assert [row['id'] for row in calls] == [0, 1, 2]
+        assert all(base64.b64decode(row['stdin']) == raw for row in calls)
+        captures.append(assert_member_capture(scene, b'', diagnostic, 1, session))
+    assert captures[0].isdisjoint(captures[1]), 'Separate invocations must not overwrite/reuse capture paths'
+    assert captures[0].isdisjoint(captures[2]) and captures[1].isdisjoint(captures[2])
+    second_bytes = {path: Path(path).read_bytes() for pair in captures[2] for path in pair}
+    binding = scene.bindings['capture-session-a']
+    cleanup_project_session_runtime(scene.services[1].settings.project_config, binding['session_id'])
+    assert not first_root.exists()
+    assert all(not Path(path).exists() for group in captures[:2] for pair in group for path in pair)
+    assert second_root.is_dir()
+    assert {path: Path(path).read_bytes() for path in second_bytes} == second_bytes
+
+
+def test_proxy_retains_real_runner_spawn_exception_and_later_outcomes(scene):
+    scene.prepare_session()
+    handler = scene.publish()
+    witness = scene.root / 'spawn-fault-witness.json'
+    result = invoke(handler['command'], scene.raw_event(), scene.root, environment={
+        'INITIAL_PROXY_FAIL_POPEN_TARGET': str(scene.probes[0]),
+        'INITIAL_PROXY_FAULT_WITNESS': str(witness)})
+    assert witness.is_file(), 'Fault must reach the real product runner Popen boundary'
+    assert json.loads(witness.read_text())['error'] == 'fixture actual Popen failure'
+    assert result.returncode == 1
+    assert json.loads(result.stdout) == {}
+    assert b'fixture actual Popen failure' in result.stderr
+    assert [row['id'] for row in scene.calls()] == [1, 2]
+    # No child existed: retain the actual exception and empty streams, not an
+    # invented shell127. A project-wide witness outside this session cannot pass.
+    documents = [json.dumps(value, ensure_ascii=False) for _, value in session_documents(scene)]
+    assert any('RegisteredLaunchFailure' in value and 'fixture actual Popen failure' in value
+               for value in documents), 'Actual typed launch exception must be retained by the session owner'
+    assert_member_capture(scene, b'', b'', None)
 
 
 def test_member_republication_keeps_single_entry_and_restore_keeps_later_events(scene):

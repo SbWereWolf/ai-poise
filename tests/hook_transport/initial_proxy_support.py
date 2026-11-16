@@ -29,10 +29,11 @@ def write(path, value):
     return path
 
 
-def invoke(command, raw, cwd, session='proxy-fixture-session'):
+def invoke(command, raw, cwd, session='proxy-fixture-session', *, environment=None):
     env = host_environment(session)
     env.update(INITIAL_PROXY_MARKER='literal inherited marker',
                PYTHONPATH=os.pathsep.join((str(SOURCE), str(SOURCE.parent))))
+    env.update(environment or {})
     return subprocess.run(['/bin/sh', '-c', command, 'native-host'], input=raw,
                           cwd=cwd, env=env, capture_output=True, timeout=20)
 
@@ -45,6 +46,8 @@ class Scene:
         self.root = Path(project['root']) / 'proxy-sandbox'
         self.root.mkdir()
         self.trace = self.root / 'probe-trace'
+        self.capture_roots = {}
+        self.bindings = {}
         self.hooks = self.root / 'native-hooks.json'
         self.lock = self.root / 'native-hooks.lock'
         self.repositories = {}
@@ -113,9 +116,12 @@ class Scene:
                      stderr=base64.b64encode(stderr).decode(), exit_code=code)
         write(path, value)
 
-    def raw_event(self, *, source='startup', repository='poise'):
+    def raw_event(self, *, source='startup', repository='poise',
+                  session='proxy-fixture-session', delivery=None):
         value = literal('native-event.json')
-        value.update(cwd=str(self.repositories[repository]), source=source)
+        value.update(cwd=str(self.repositories[repository]), source=source, session_id=session)
+        if delivery is not None:
+            value['fixture_delivery'] = delivery
         # Noncanonical whitespace deliberately observes raw-byte forwarding.
         return ('  ' + json.dumps(value, ensure_ascii=True, indent=1) + '\n').encode()
 
@@ -148,6 +154,24 @@ class Scene:
         assert result[0] == 0, result
         assert len(groups[0]['hooks']) == 1
         return groups[0]['hooks'][0]
+
+    def prepare_session(self, session='proxy-fixture-session'):
+        """Establish an actual session through its existing legacy callback.
+
+        A fixed child probe does not manufacture a binding or session directory.
+        Capture ownership comes from the actual binding/runtime owner.
+        """
+        self.outcome(1, mode='delegate')
+        result = invoke(self.members[1]['hooks'][0]['command'],
+                        self.raw_event(session=session), self.root, session)
+        assert result.returncode == 0, result.stderr
+        binding = self.services[1].latest_binding(session, 'primary')
+        runtime = self.services[1].bound_runtime(binding['binding_path'])
+        self.capture_roots[session] = Path(runtime.runtime)
+        self.bindings[session] = binding
+        self.outcome(1)
+        (self.trace / 'calls.jsonl').unlink()
+        return self.capture_roots[session]
 
     def edit_member(self, number, *, timeout=15):
         service = self.services[number]

@@ -18,6 +18,28 @@ module = arguments.index('-m') if '-m' in arguments else -1
 if module < 0 or arguments[module + 1:module + 3] != ['poise', 'hook']:
     # Only legacy member callbacks are probes; a new proxy verb and any other
     # configured command execute their actual source through the selected Python.
+    fault_target = os.environ.get('INITIAL_PROXY_FAIL_POPEN_TARGET')
+    if fault_target and module >= 0 and arguments[module + 1] == 'poise':
+        # Run the real application entry, injecting only its OS process-creation
+        # boundary. The real RegisteredCheckRunner must wrap this actual OSError.
+        import runpy
+        from poise import execution
+        original_popen = execution.subprocess.Popen
+        injected = False
+
+        def popen(argv, *args, **kwargs):
+            global injected
+            if not injected and any(fault_target in str(value) for value in argv):
+                injected = True
+                Path(os.environ['INITIAL_PROXY_FAULT_WITNESS']).write_text(
+                    json.dumps({'argv': argv, 'error': 'fixture actual Popen failure'}))
+                raise OSError('fixture actual Popen failure')
+            return original_popen(argv, *args, **kwargs)
+
+        execution.subprocess.Popen = popen
+        sys.argv = ['poise', *arguments[module + 2:]]
+        runpy.run_module('poise', run_name='__main__')
+        raise SystemExit(0)
     os.execv(options['python'], [options['python'], *arguments])
 raw = sys.stdin.buffer.read()
 folder = Path(options['trace'])

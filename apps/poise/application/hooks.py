@@ -13,6 +13,7 @@ class HookEvents:
         self.sessions, self.registry, self.files = sessions, registry, files
 
     def response(self, session, binding, event, replayed):
+        self.sessions.remember_observed(session)
         return {'session': session.view(), 'binding': binding.view(), 'event': event,
                 'native_response': native_response(self.definition, event, session), 'replayed': replayed}
 

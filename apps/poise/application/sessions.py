@@ -14,6 +14,11 @@ class SessionOperations:
         self.state, self.resolver, self.repository = state, resolver, repository
         self.roles = roles
         self.session_factory = session_factory or (lambda: uuid.uuid4().hex)
+        self.observed_session_id = None
+
+    def remember_observed(self, session):
+        self.observed_session_id = session.id
+        return session
 
     def caller(self, *, create):
         native = self.resolver.validate_context()
@@ -27,7 +32,7 @@ class SessionOperations:
         session = self.repository.observe(caller.key)
         if session is None:
             missing_session()
-        return session
+        return self.remember_observed(session)
 
     def status(self):
         return {'session': self.observed(self.caller(create=False)).view()}
@@ -36,10 +41,10 @@ class SessionOperations:
         caller = self.caller(create=True)
         existing = self.repository.observe(caller.key)
         if existing is not None:
-            return {'session': existing.view(), 'created': False}
+            return {'session': self.remember_observed(existing).view(), 'created': False}
         with self.repository.transaction() as unit:
             session, created = self.ensure_in(unit, caller)
-        return {'session': session.view(), 'created': created}
+        return {'session': self.remember_observed(session).view(), 'created': created}
 
     def ensure_in(self, unit, caller):
         existing = unit.observe(caller.key)

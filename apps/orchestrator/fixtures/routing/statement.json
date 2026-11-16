@@ -1,0 +1,13 @@
+[
+  {
+    "id": "task",
+    "value": {
+      "task_id": "@TASK@",
+      "statement_revision": "@STATEMENT@",
+      "snapshot_revision": null,
+      "goal": "Подготовить отчёт.",
+      "definition_of_done": [],
+      "task_requirements": []
+    }
+  }
+]

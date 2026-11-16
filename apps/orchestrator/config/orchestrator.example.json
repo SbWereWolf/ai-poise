@@ -17,13 +17,59 @@
     "poll_seconds": 0.05
   },
   "commands": {
-    "requirements.query": {
+    "requirements": {
       "protocol": "owner-json-v1",
-      "argv": ["../../requirements/bin/requirements", "--config", "../../requirements/config/requirements.json"],
-      "cwd": ".",
-      "env": {},
+      "argv": [
+        "/absolute/path/python3.13",
+        "/absolute/path/ai-poise/apps/requirements/bin/requirements",
+        "--config",
+        "/absolute/path/config/requirements.json"
+      ],
+      "cwd": "/absolute/path/ai-poise",
+      "env": {
+        "PATH": "/absolute/path/python-bin:/usr/bin:/bin"
+      },
       "timeout_seconds": 10.0,
-      "accepted_exit_codes": [0, 2]
+      "accepted_exit_codes": [
+        0,
+        2
+      ]
+    },
+    "sequencing": {
+      "protocol": "owner-json-v1",
+      "argv": [
+        "/absolute/path/python3.13",
+        "/absolute/path/ai-poise/apps/sequencing/bin/sequencing",
+        "--config",
+        "/absolute/path/config/sequencing.json"
+      ],
+      "cwd": "/absolute/path/ai-poise",
+      "env": {
+        "PATH": "/absolute/path/python-bin:/usr/bin:/bin"
+      },
+      "timeout_seconds": 10.0,
+      "accepted_exit_codes": [
+        0,
+        2
+      ]
+    },
+    "execution": {
+      "protocol": "owner-json-v1",
+      "argv": [
+        "/absolute/path/python3.13",
+        "/absolute/path/ai-poise/apps/execution/bin/execution",
+        "--config",
+        "/absolute/path/config/execution.json"
+      ],
+      "cwd": "/absolute/path/ai-poise",
+      "env": {
+        "PATH": "/absolute/path/python-bin:/usr/bin:/bin"
+      },
+      "timeout_seconds": 10.0,
+      "accepted_exit_codes": [
+        0,
+        2
+      ]
     }
   }
 }

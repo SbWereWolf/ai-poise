@@ -1,0 +1,104 @@
+{
+  "invoke": {
+    "schema": "stride-orchestrator/v1",
+    "operation": "invoke",
+    "input": {
+      "request_id": "@REQUEST@",
+      "command_id": "@COMMAND@",
+      "packet": "@PACKET@"
+    }
+  },
+  "catalogue": {
+    "schema": "stride-orchestrator/v1",
+    "operation": "query",
+    "input": {
+      "queries": [
+        {
+          "id": "commands",
+          "kind": "commands"
+        }
+      ]
+    }
+  },
+  "echo": {
+    "schema": "routing-input/v1",
+    "value": "hello"
+  },
+  "create": {
+    "operation": "create_task",
+    "input": {
+      "request_id": "owner-create",
+      "goal": "Подготовить отчёт."
+    }
+  },
+  "requirements_query": {
+    "operation": "query",
+    "input": {
+      "queries": [
+        {
+          "id": "task",
+          "kind": "get_task",
+          "task_id": "@TASK@"
+        }
+      ]
+    }
+  },
+  "sequencing_query": {
+    "schema": "stride-sequencing/v1",
+    "operation": "query",
+    "input": {
+      "queries": [
+        {
+          "id": "task",
+          "kind": "task",
+          "task_id": "@TASK@"
+        }
+      ]
+    }
+  },
+  "execution_query": {
+    "schema": "stride-execution/v1",
+    "operation": "query",
+    "input": {
+      "queries": [
+        {
+          "id": "task",
+          "kind": "execution",
+          "task_id": "@TASK@"
+        }
+      ]
+    }
+  },
+  "register": {
+    "schema": "stride-sequencing/v1",
+    "operation": "apply",
+    "input": {
+      "request_id": "owner-register",
+      "expected_revision": 0,
+      "operations": [
+        {
+          "id": "register",
+          "kind": "register_task",
+          "task_id": "@TASK@",
+          "requirements_statement_revision": "@STATEMENT@"
+        }
+      ]
+    }
+  },
+  "sequencing_view": {
+    "schema": "stride-sequencing/v1",
+    "operation": "query",
+    "input": {
+      "queries": [
+        {
+          "id": "view",
+          "kind": "next",
+          "claimant": "routing-operator",
+          "scope": {
+            "kind": "all"
+          }
+        }
+      ]
+    }
+  }
+}

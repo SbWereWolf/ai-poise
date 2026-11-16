@@ -1,9 +1,11 @@
 # Orchestrator public contract
 
-Статус: target design `PS-DEV-002-T013` / `M01.T013`.
-Протокол: `stride-orchestrator/v1`. Это не утверждение о том, что текущий
-`poise work` уже реализует самостоятельный Orchestrator или межпроцессный yield.
-Изменение T013 — только данный контракт; executable/config/store реализуются далее.
+Статус: целевой контракт `PS-DEV-002-T013` / `M01.T013`.
+Протокол: `stride-orchestrator/v1`. Действующая синхронная оболочка `stride`,
+её фактический формат настроек и самостоятельные команды описаны в
+[инструкции Orchestrator](shell-orc.md#запуск-и-настройка).
+Ниже сохраняется полный целевой договор, включая дальнейшие Role/Session,
+`yield`/resume/deferred и асинхронный журнал; он не объявляет эти части реализованными.
 
 ## 1. Граница владельца и baseline
 
@@ -210,7 +212,8 @@ History/events здесь фиксируют координацию;
 и reserved invocation/CallStep. Для start и каждого parent resume назначается
 разный step_id, даже при неизменном invocation_id. Started intent конкретного
 CallStep публикуется до запуска. Один Job не имеет двух параллельно исполняемых
-шагов одной invocation; при ожидании внешнего процесса общий DB lock не удерживается. После него успех
+шагов одной invocation; при ожидании внешнего процесса общий DB lock не удерживается. После него
+успех
 нельзя вывести из отсутствия процесса. Реальные stdout/exit/signal/timeout и их
 hashes сохраняются в immutable owner result; limits проверяются до передачи/чтения.
 Невалидный/truncated output не выдаётся за нормальный JSON result.
@@ -303,7 +306,8 @@ Budget/depth/time bounds ограничивают цепочку; превыше
 цепочку с limit_exceeded; новые шаги, в том числе error-resume, сверх hard bound
 не запускаются, Job становится blocked (pending reason limit_exceeded), outcome
 ранее запущенных владельцев не откатывается. Timeout уже started шага может
-иметь side effects и рассматривается как outcome_unknown, не safe budget pause. Возобновляется конкретная recorded continuation, не другой native
+иметь side effects и рассматривается как outcome_unknown, не safe budget pause. Возобновляется
+конкретная recorded continuation, не другой native
 session и не обращение, которое просто было последним в общей очереди.
 
 ## 6. Sync/deferred, replay и изменение конфигурации
@@ -311,7 +315,8 @@ session и не обращение, которое просто было пос�
 Inline/deferred выбирается Orchestrator из своей explicit scheduling config.
 Приложение может yield, но не выбирает другой scheduler, скрытый background daemon
 или прямой peer call. При inline Orchestrator делает разрешённые шаги в пределах
-budget; при deferred сохраняет queued Job и возвращает waiting. `resume` из исходного caller context выполняет дальнейшие шаги. Отдельный
+budget; при deferred сохраняет queued Job и возвращает waiting. `resume` из исходного caller context
+выполняет дальнейшие шаги. Отдельный
 worker не получает authorization из сохранённой строки роли: он допустим только
 при явном публичном источнике актуального контекста исходного caller. При
 невозможности получить такой контекст ничего не запускается; v1 не требует
@@ -409,7 +414,8 @@ expected Job version/binding → local intent/public command. Таким обр�
 
 `store_busy` может быть retryable=true; deterministic contract/authority conflicts —
 false. После started invocation `command_failed` не обещает отсутствие чужих side
-effects. Неизвестный outcome — blocked с pending reason, а не fabricated safe failure. `command_failed` с
+effects. Неизвестный outcome — blocked с pending reason, а не fabricated safe failure.
+`command_failed` с
 disposition transport_failed применяется только когда известно, что процесс не
 был запущен либо получен определённый отказ транспорта; неполный/несопоставимый
 ответ после возможного side effect сохраняет diagnostic, но требует

@@ -1,0 +1,5 @@
+{
+  "schema": "stride-execution/v1",
+  "status": "rejected",
+  "reason": "execution_not_found"
+}

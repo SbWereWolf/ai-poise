@@ -1,0 +1,9 @@
+{
+  "status": "ok",
+  "tag": "@TAG@",
+  "packet": {
+    "schema": "routing-input/v1",
+    "value": "hello"
+  },
+  "cwd": "@CWD@"
+}

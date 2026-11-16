@@ -91,6 +91,9 @@ def parser():
     hook.add_argument('--settings',type=Path,required=True)
     hook.add_argument('--definition',type=Path,required=True)
     hook.add_argument('--retry',type=Path,help='Retry one saved committed lifecycle delivery without replaying a native event')
+    proxy=sub.add_parser('hook-proxy',help='Run the original SessionStart callback projection')
+    proxy.add_argument('--settings',type=Path,required=True)
+    proxy.add_argument('--snapshot',type=Path,required=True)
     bound=sub.add_parser('hook-work',help='One work packet using a generated session binding')
     bound.add_argument('--settings',type=Path,required=True,action=SingleArgument)
     bound.add_argument('--binding',type=Path,required=True,action=SingleArgument)
@@ -196,6 +199,9 @@ def main():
     if args.command=='runtime-setup':
         from .interfaces.hook_transport import setup
         return setup(args,sys.stdin.buffer,sys.stdout,sys.stderr)
+    if args.command == 'hook-proxy':
+        from .interfaces.hook_transport import proxy_execute
+        return proxy_execute(args,sys.stdin.buffer,sys.stdout.buffer,sys.stderr.buffer)
     if args.command in ('runtime-config','hook','hook-work'):
         from .interfaces.hook_transport import execute
         return execute(args.command,args,sys.stdin.buffer,sys.stdout,sys.stderr,started_at=started_at)

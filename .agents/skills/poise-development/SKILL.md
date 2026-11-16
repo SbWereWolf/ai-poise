@@ -67,7 +67,7 @@ owners and
 dependencies](../../../docs/architecture/boundaries.md#ddd-04b--новые-владельцы-и-зависимости).
 
 Keep caller-to-session establishment in `SessionEstablisher` for every public work composition.
-Use native identity when available and an explicit persistent `POISE_CALLER_BINDING` otherwise;
+Use native identity when available and an explicit persistent `POISE_TwillLER_BINDING` otherwise;
 callers and agents must not substitute an arbitrary session value. Identity origin is provenance,
 not authorization, and read-only establishment must not create a business subject.
 
@@ -94,20 +94,20 @@ when working on implementation behaviour. Standalone documentation, design and a
 contracted Result and applicable factual/content/source checks without an invented code delta or
 predecessor RED/GREEN.
 
-For an assigned CAL Task, select its public Goal by the required final Result;
+For an assigned Twill Task, select its public Goal by the required final Result;
 take the current Activity/operation from the native assignment and local methods
-from applicable project routing. A document uses `cal-write-documentation`;
-executable code development uses the public `cal-code-development` Goal.
+from applicable project routing. A document uses `twill-write-documentation`;
+executable code development uses the public `twill-code-development` Goal.
 An ordinary question does not itself require a Task. Use the single user-home
-CAL 2.3.0 bundle: explicitly read the selected public entry, workflow and binding,
+Twill 3.1.0 bundle: explicitly read the selected public entry, workflow and binding,
 then only required current internal subject/operation dependencies. Internal skills
 are dependencies, not autonomous Goals. Preserve native ownership, the agreed
 graph, frozen obligations and independent review. Diagnose unavailable required
 sources or conflicting contracts through their actual owner; do not silently
 substitute another source or equate Goal and method catalogues. Router source
 paths/digests do not replace reading the required current body or prove acceptance.
-Follow the canonical [CAL Goal and local project
-methods](../../../docs/configuration/development-routing.md#цель-cal-и-локальные-методы-проекта).
+Follow the canonical [Twill Goal and local project
+methods](../../../docs/configuration/development-routing.md#цель-twill-и-локальные-методы-проекта).
 
 For review, apply the incident-derived [evidence-based
 checklist](../../../docs/workflows/evidence-based-review.md#что-считать-находкой). Every actionable
@@ -233,7 +233,7 @@ AI poise is a separate application. Each configured project owns its Task DB and
 catalogue initialized from AI poise reference templates. Changing a reference template must not
 silently change an existing project's workflow configuration. For the WSL delivery model, read
 [Local installation →
-Architecture](../../../docs/configuration/wsl-local-delivery.md#архитектура-локальной-установки) and
+Architecture](../../../docs/configuration/wsl-lotwill-delivery.md#архитектура-локальной-установки) and
 [Project setup → Publication and
 replay](../../../docs/configuration/project-setup.md#публикация-и-повтор).
 
@@ -285,7 +285,7 @@ An idle reviewer starts on a received handoff. If several handoffs arrive, finis
 started, save its result, release the Task and notify its executor, then immediately take the next
 already-received actionable Task in the same turn. Incoming handoffs do not interrupt the current
 review. Follow the canonical [direct-handoff
-rule](../../../docs/workflows/local-handoff.md#прямая-передача-между-исполнителем-и-проверяющим).
+rule](../../../docs/workflows/lotwill-handoff.md#прямая-передача-между-исполнителем-и-проверяющим).
 
 Never run the full test suite during task work, including at a delivery boundary. Run only narrow
 task-specific checks and the maintained bounded `tests/smoke.sh`; never register unfiltered
@@ -299,7 +299,7 @@ Task start authorizes executor and reviewer to continue their respective stages,
 and remediation, without a separate command for each review; honor explicit user limits and AI poise
 gates. At a role boundary, save results, confirm ordinary public release/release, stop modifying the
 Task and [directly notify the known
-counterpart](../../../docs/workflows/local-handoff.md#прямая-передача-между-исполнителем-и-проверяющим).
+counterpart](../../../docs/workflows/lotwill-handoff.md#прямая-передача-между-исполнителем-и-проверяющим).
 The receiver claims/resumes before work. A configured single-role workflow permits self-inspection
 without a second participant. Self-inspection is not independent review, and publication/integration
 retains its separate authorization.
@@ -318,7 +318,7 @@ pending counterpart decision and next action for continuation on an incoming res
 Do not keep the turn alive with model calls, timers or background polling. A send receipt proves
 submission, not recipient completion. Recover notification errors using the saved result and finish
 own running operations. Follow [ending the turn after
-handoff](../../../docs/workflows/local-handoff.md#завершение-хода-после-передачи).
+handoff](../../../docs/workflows/lotwill-handoff.md#завершение-хода-после-передачи).
 
 Before project setup, changing `git.base_ref`, or integration, read the canonical [target branch
 selection](../../../docs/configuration/project-setup.md#выбор-ветки-основного-checkout-для-интеграции).
@@ -451,3 +451,5 @@ Authenticated historical omissions never excuse missing current material. Follow
 [recovery](../../../docs/governance/development-rules.md#переносимое-состояние-задачи)
 and [proof
 configurations](../../../docs/workflows/evidence.md#конфигурационные-наборы-и-повторные-проверки).
+
+For actual assigned Task work, read the explicit Goal-to-entry mapping and bundle root from `config/development/task-goal-routing.json`. Application/file-path-to-method selection remains in `config/development/skill-selection.json`; runtime checks remain in `config/development/routing.json`. Missing configured goals/files fail explicitly. Existing frozen Tasks retain their contracted workflow.

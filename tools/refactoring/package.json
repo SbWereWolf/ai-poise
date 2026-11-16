@@ -1,0 +1,10 @@
+{
+  "name": "poise-refactoring-tools",
+  "version": "1.0.0",
+  "private": true,
+  "devDependencies": {
+    "@ast-grep/cli": "0.51.3",
+    "@sonar/scan": "5.1.0",
+    "jscpd": "5.4.3"
+  }
+}

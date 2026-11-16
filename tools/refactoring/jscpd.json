@@ -1,0 +1,15 @@
+{
+  "mode": "strict",
+  "minLines": 5,
+  "minTokens": 50,
+  "ignore": [
+    "**/node_modules/**",
+    "**/.venv/**",
+    "**/.runtime/**",
+    "**/projects/**",
+    "**/tools/refactoring/**"
+  ],
+  "reporters": [
+    "console"
+  ]
+}

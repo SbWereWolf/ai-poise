@@ -1,0 +1,135 @@
+{
+  "schema_version": 1,
+  "bundle": "Twill Workflows",
+  "bundle_version": "3.1.0",
+  "skills_root": "/mnt/c/Users/SbWereWolf/.codex/skills/twill-workflows",
+  "selection": "actual_task_goal",
+  "internal_selection": "explicit_only",
+  "method_routing_config": "config/development/skill-selection.json",
+  "missing_goal_or_file": "explicit_failure",
+  "goals": {
+    "environment_remediation": {
+      "skill": "twill-change-environment",
+      "entry": "discoverable-goals/twill-change-environment/SKILL.md",
+      "workflow": "discoverable-goals/twill-change-environment/workflow.json",
+      "binding": "discoverable-goals/twill-change-environment/binding.en.md"
+    },
+    "development": {
+      "skill": "twill-code-development",
+      "entry": "discoverable-goals/twill-code-development/SKILL.md",
+      "workflow": "discoverable-goals/twill-code-development/workflow.json",
+      "binding": "discoverable-goals/twill-code-development/binding.en.md"
+    },
+    "release_adoption": {
+      "skill": "twill-deploy-release",
+      "entry": "discoverable-goals/twill-deploy-release/SKILL.md",
+      "workflow": "discoverable-goals/twill-deploy-release/workflow.json",
+      "binding": "discoverable-goals/twill-deploy-release/binding.en.md"
+    },
+    "design": {
+      "skill": "twill-design-solution",
+      "entry": "discoverable-goals/twill-design-solution/SKILL.md",
+      "workflow": "discoverable-goals/twill-design-solution/workflow.json",
+      "binding": "discoverable-goals/twill-design-solution/binding.en.md"
+    },
+    "test_development": {
+      "skill": "twill-develop-tests",
+      "entry": "discoverable-goals/twill-develop-tests/SKILL.md",
+      "workflow": "discoverable-goals/twill-develop-tests/workflow.json",
+      "binding": "discoverable-goals/twill-develop-tests/binding.en.md"
+    },
+    "environment_diagnostics": {
+      "skill": "twill-diagnose-environment",
+      "entry": "discoverable-goals/twill-diagnose-environment/SKILL.md",
+      "workflow": "discoverable-goals/twill-diagnose-environment/workflow.json",
+      "binding": "discoverable-goals/twill-diagnose-environment/binding.en.md"
+    },
+    "technology_evaluation": {
+      "skill": "twill-evaluate-technology",
+      "entry": "discoverable-goals/twill-evaluate-technology/SKILL.md",
+      "workflow": "discoverable-goals/twill-evaluate-technology/workflow.json",
+      "binding": "discoverable-goals/twill-evaluate-technology/binding.en.md"
+    },
+    "integration": {
+      "skill": "twill-integrate-results",
+      "entry": "discoverable-goals/twill-integrate-results/SKILL.md",
+      "workflow": "discoverable-goals/twill-integrate-results/workflow.json",
+      "binding": "discoverable-goals/twill-integrate-results/binding.en.md"
+    },
+    "software_maintenance": {
+      "skill": "twill-maintain-software",
+      "entry": "discoverable-goals/twill-maintain-software/SKILL.md",
+      "workflow": "discoverable-goals/twill-maintain-software/workflow.json",
+      "binding": "discoverable-goals/twill-maintain-software/binding.en.md"
+    },
+    "data_migration": {
+      "skill": "twill-migrate-data",
+      "entry": "discoverable-goals/twill-migrate-data/SKILL.md",
+      "workflow": "discoverable-goals/twill-migrate-data/workflow.json",
+      "binding": "discoverable-goals/twill-migrate-data/binding.en.md"
+    },
+    "profiling": {
+      "skill": "twill-profile-software",
+      "entry": "discoverable-goals/twill-profile-software/SKILL.md",
+      "workflow": "discoverable-goals/twill-profile-software/workflow.json",
+      "binding": "discoverable-goals/twill-profile-software/binding.en.md"
+    },
+    "analysis": {
+      "skill": "twill-research",
+      "entry": "discoverable-goals/twill-research/SKILL.md",
+      "workflow": "discoverable-goals/twill-research/workflow.json",
+      "binding": "discoverable-goals/twill-research/binding.en.md"
+    },
+    "service_restoration": {
+      "skill": "twill-restore-service",
+      "entry": "discoverable-goals/twill-restore-service/SKILL.md",
+      "workflow": "discoverable-goals/twill-restore-service/workflow.json",
+      "binding": "discoverable-goals/twill-restore-service/binding.en.md"
+    },
+    "software_retirement": {
+      "skill": "twill-retire-software",
+      "entry": "discoverable-goals/twill-retire-software/SKILL.md",
+      "workflow": "discoverable-goals/twill-retire-software/workflow.json",
+      "binding": "discoverable-goals/twill-retire-software/binding.en.md"
+    },
+    "review": {
+      "skill": "twill-review-result",
+      "entry": "discoverable-goals/twill-review-result/SKILL.md",
+      "workflow": "discoverable-goals/twill-review-result/workflow.json",
+      "binding": "discoverable-goals/twill-review-result/binding.en.md"
+    },
+    "sprint_planning": {
+      "skill": "twill-specify-sprint",
+      "entry": "discoverable-goals/twill-specify-sprint/SKILL.md",
+      "workflow": "discoverable-goals/twill-specify-sprint/workflow.json",
+      "binding": "discoverable-goals/twill-specify-sprint/binding.en.md"
+    },
+    "task_planning": {
+      "skill": "twill-specify-task",
+      "entry": "discoverable-goals/twill-specify-task/SKILL.md",
+      "workflow": "discoverable-goals/twill-specify-task/workflow.json",
+      "binding": "discoverable-goals/twill-specify-task/binding.en.md"
+    },
+    "software_familiarization": {
+      "skill": "twill-understand-software",
+      "entry": "discoverable-goals/twill-understand-software/SKILL.md",
+      "workflow": "discoverable-goals/twill-understand-software/workflow.json",
+      "binding": "discoverable-goals/twill-understand-software/binding.en.md"
+    },
+    "verification": {
+      "skill": "twill-verify-result",
+      "entry": "discoverable-goals/twill-verify-result/SKILL.md",
+      "workflow": "discoverable-goals/twill-verify-result/workflow.json",
+      "binding": "discoverable-goals/twill-verify-result/binding.en.md"
+    },
+    "documentation": {
+      "skill": "twill-write-documentation",
+      "entry": "discoverable-goals/twill-write-documentation/SKILL.md",
+      "workflow": "discoverable-goals/twill-write-documentation/workflow.json",
+      "binding": "discoverable-goals/twill-write-documentation/binding.en.md"
+    }
+  },
+  "existing_frozen_tasks": "Preserve their contracted workflow; no automatic migration.",
+  "runtime_check_routing_config": "config/development/routing.json",
+  "application": "poise"
+}

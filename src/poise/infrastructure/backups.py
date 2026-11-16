@@ -286,6 +286,13 @@ class LocalTaskDatabaseBackups:
     @contextmanager
     def database_copy(self, name):
         """Read a verified DB from the same snapshot format used by restore."""
+        with self.locked():
+            with self._database_copy_owned(name) as source:
+                yield source
+
+    @contextmanager
+    def _database_copy_owned(self, name):
+        """Read a verified source while the caller owns the backup resource."""
         if self.materials is None:
             selected = self._selected(name)
             _integrity(selected)
@@ -360,7 +367,7 @@ class LocalTaskDatabaseBackups:
                     self._install_bundle(stage)
                     installed = True
             else:
-                with self.database_copy(name) as source, self._staged_database(source) as database:
+                with self._database_copy_owned(name) as source, self._staged_database(source) as database:
                     os.replace(database, self.database)
                     try:
                         _sync_directory(self.database.parent)
@@ -428,9 +435,13 @@ class LocalTaskDatabaseBackups:
         if not final.exists():
             return None, False
         try:
-            return json.loads(final.read_text(encoding='utf-8')), False
+            grant = json.loads(final.read_text(encoding='utf-8'))
         except (OSError, ValueError) as exc:
             raise PoiseError(f'Cannot read retention metadata for {name}: {exc}') from exc
+        if not isinstance(grant, dict):
+            raise PoiseError(f'Retention metadata for {name} must be a JSON object; preserve '
+                             'this archive and reconcile its exact recorded source before retrying')
+        return grant, False
 
     def publish_grant(self, name, grant):
         final, pending = self._grant_path(name), self._grant_path(name, True)

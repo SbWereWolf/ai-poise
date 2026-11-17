@@ -1,0 +1,176 @@
+[
+  {
+    "id": "unbound-bash",
+    "repository": "poise",
+    "bound": false,
+    "tool": "Bash",
+    "selected": [
+      0,
+      1
+    ],
+    "invalid": false,
+    "old": [
+      [
+        1,
+        "",
+        "Native event requires its genuine preceding SessionStart binding\n"
+      ],
+      [
+        1,
+        "",
+        "Native event requires its genuine preceding SessionStart binding\n"
+      ]
+    ],
+    "successes": [],
+    "proxy": [
+      1,
+      "{}\n",
+      "Native event requires its genuine preceding SessionStart binding\nNative event requires its genuine preceding SessionStart binding\n"
+    ]
+  },
+  {
+    "id": "bound-poise-bash",
+    "repository": "poise",
+    "bound": true,
+    "tool": "Bash",
+    "selected": [
+      0,
+      1
+    ],
+    "invalid": false,
+    "old": [
+      [
+        1,
+        "",
+        "Native event requires its genuine preceding SessionStart binding\n"
+      ],
+      [
+        0,
+        "{}\n",
+        ""
+      ]
+    ],
+    "successes": [
+      1
+    ],
+    "proxy": [
+      1,
+      "{}\n",
+      "Native event requires its genuine preceding SessionStart binding\n"
+    ]
+  },
+  {
+    "id": "bound-erp-bash",
+    "repository": "erp",
+    "bound": true,
+    "tool": "Bash",
+    "selected": [
+      0,
+      1
+    ],
+    "invalid": false,
+    "old": [
+      [
+        0,
+        "{}\n",
+        ""
+      ],
+      [
+        1,
+        "",
+        "Native event requires its genuine preceding SessionStart binding\n"
+      ]
+    ],
+    "successes": [
+      0
+    ],
+    "proxy": [
+      1,
+      "{}\n",
+      "Native event requires its genuine preceding SessionStart binding\n"
+    ]
+  },
+  {
+    "id": "bound-poise-mcp",
+    "repository": "poise",
+    "bound": true,
+    "tool": "mcp__codex_app__list_projects",
+    "selected": [
+      0,
+      1
+    ],
+    "invalid": false,
+    "old": [
+      [
+        1,
+        "",
+        "Native event requires its genuine preceding SessionStart binding\n"
+      ],
+      [
+        0,
+        "{}\n",
+        ""
+      ]
+    ],
+    "successes": [
+      1
+    ],
+    "proxy": [
+      1,
+      "{}\n",
+      "Native event requires its genuine preceding SessionStart binding\n"
+    ]
+  },
+  {
+    "id": "other-tool",
+    "repository": "poise",
+    "bound": true,
+    "tool": "Read",
+    "selected": [
+      0
+    ],
+    "invalid": false,
+    "old": [
+      [
+        1,
+        "",
+        "Native event requires its genuine preceding SessionStart binding\n"
+      ]
+    ],
+    "successes": [],
+    "proxy": [
+      1,
+      "{}\n",
+      "Native event requires its genuine preceding SessionStart binding\n"
+    ]
+  },
+  {
+    "id": "invalid-json",
+    "repository": "poise",
+    "bound": false,
+    "tool": "Bash",
+    "selected": [
+      0,
+      1
+    ],
+    "invalid": true,
+    "old": [
+      [
+        1,
+        "",
+        "Native hook JSON object required\n"
+      ],
+      [
+        1,
+        "",
+        "Native hook JSON object required\n"
+      ]
+    ],
+    "successes": [],
+    "proxy": [
+      1,
+      "",
+      "Native hook JSON object required\n"
+    ]
+  }
+]

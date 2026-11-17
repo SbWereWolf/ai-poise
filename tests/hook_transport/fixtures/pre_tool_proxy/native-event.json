@@ -1,0 +1,19 @@
+{
+  "hook_event_name": "PreToolUse",
+  "session_id": "proxy-fixture-session",
+  "cwd": "fixture-replaced",
+  "transcript_path": null,
+  "tool_name": "Bash",
+  "source": "startup",
+  "tool_input": {
+    "command": "printf FIXTURE_NOT_EXECUTED",
+    "future_argument": "Юникод|literal"
+  },
+  "fixture_extension": {
+    "values": [
+      1,
+      2,
+      3
+    ]
+  }
+}

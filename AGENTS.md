@@ -223,6 +223,12 @@ never authorizes a technical archive. Preserve actual ownership and storage inte
 cleanup is an unmet step outcome. Follow [single-step copy
 lifetime](docs/architecture/storage-lifecycle.md#срок-жизни-служебных-копий).
 
+Before integration, apply [both database test passes](docs/workflows/batch-work.md#два-прогона-на-бд-перед-интеграцией)
+to the merged candidate in the Task worktree: migrated development databases first,
+then consistent copies of primary-instance databases after candidate migrations.
+Record both actual database inputs and outcomes in current methods/evidence; an empty
+method registry or a schema-reset test is not proof. Primary databases remain read-only.
+
 Record each confirmed harness defect in its appropriate Task, reusing an existing
 Task or registering one draft when none fits. Put reproduction, recovery records
 and necessary attachments in that Task. Keep only a concise active known-bug

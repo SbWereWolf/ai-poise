@@ -231,6 +231,7 @@ startup/fork описаны в [общей
 | `runtime-setup` | `--settings PATH --max-input-bytes INT`; JSON stdin. | Создание настроек hook-установки одним пакетом; явный лимит входа. |
 | `runtime-config` | `--settings PATH`; JSON stdin. | Установка hook-конфигурации, probes, сохранённое чтение `summary` и явное обновление `refresh`. |
 | `hook` | `--settings PATH --definition PATH`; native event JSON stdin. | Доставка события хоста по неизменяемому определению установки. |
+| `hook-proxy` | `--settings PATH --snapshot PATH`; native event JSON stdin. | Исполнение первоначальных callback SessionStart или PreToolUse по рабочему снимку владельца. |
 | `hook-work` | `--settings PATH --binding PATH [--project EXACT_ID]`; work JSON stdin. | Выполнение по созданной hook привязке сессии. |
 
 ```bash
@@ -238,6 +239,7 @@ startup/fork описаны в [общей
 "${poise[@]}" runtime-setup --settings "$settings" --max-input-bytes 262144 < "$packet"
 "${poise[@]}" runtime-config --settings "$settings" < "$packet"
 "${poise[@]}" hook --settings "$settings" --definition "$definition" < "$native_event"
+"${poise[@]}" hook-proxy --settings "$settings" --snapshot "$snapshot" < "$native_event"
 "${poise[@]}" hook-work --settings "$settings" --binding "$binding" < "$packet"
 ```
 
@@ -245,6 +247,15 @@ startup/fork описаны в [общей
 настоящий вход события; `binding` — фактически созданная hook привязка.
 Хост вызывает hook, а выданный launcher использует hook-work.
 Оператор настраивает установку; агент сохраняет её настоящий контекст.
+
+`snapshot` для `hook-proxy` — фактический принадлежащий этим settings файл, созданный
+владельцем проекции; его путь берётся из квитанции. Управляющие операции
+`session-start-proxy` и `pre-tool-use-proxy` передаются через `runtime-config`,
+с действиями `publish` или `restore`. Это отдельный вход от исполнения native-события.
+Готовый [общий пример и сохранённый повтор](../configuration/runtime-hooks.md#пакет-и-сохранённый-повтор),
+[точные поля](../configuration/runtime-hooks.md#поля-и-результат-операции-прокси) и
+[пределы PreToolUse](../configuration/runtime-hooks.md#первоначальный-прокси-pretooluse)
+принадлежат операторскому договору. Уточнено **2026-11-17**.
 
 Для чтения последней сводки пакет содержит только свою фактическую binding:
 

@@ -591,10 +591,15 @@ Scoped transport удалён: нет текущих TransferCommands, snapshot 
 
 ### Первоначальная проекция начала сессии
 
-Уточнено **2026-11-16**. В том же hook-transport контексте
-`InitialSessionStartProjection`/`InitialSessionStartResult` задают чистую политику
-логических групп и native-ответа. `application.InitialSessionStartProxy` координирует
-исходные callbacks через переданные владельцы; это отдельная семантика от внутреннего
+Уточнено **2026-11-17**. В том же hook-transport контексте общий
+`InitialHookProjection` задаёт чистую механику логических/физических групп, бюджета
+и порядка для двух реальных потребителей: SessionStart и PreToolUse.
+`InitialSessionStartProjection`/`InitialSessionStartResult` сохраняют выбор по причине
+запуска и native-ответ начала сессии; `InitialPreToolUseProjection`/
+`InitialPreToolUseResult` отдельно выбирают по имени инструмента и обрабатывают нынешние
+нейтральные ответы. Общий application-проход `run_callbacks` используется двумя
+координаторами через переданного исполнителя. Каждый исходный callback получает
+первоначальный ввод, а не ответ предыдущего. Это отдельная семантика от внутреннего
 middleware `HookDispatcher`, где передаётся изменяемый response.
 
 `FileHookRepository` остаётся владельцем physical/logical публикации, полной revision,
@@ -608,6 +613,11 @@ End сохраняют свою ответственность. Ни публи�
 
 Пакеты, ограничения, перенос координатора и восстановление находятся в единственном
 [операторском договоре прокси](../configuration/runtime-hooks.md#первоначальный-прокси-sessionstart).
+Раздельные working snapshots обоих событий входят в ту же полную revision и журнал;
+создание второго registry, SQL-миграция или внешняя библиотека для этого не требуются.
+Предел поддержки ответов, собственный capture-подкаталог и управление проекцией
+события перед инструментом описаны в
+[договоре PreToolUse](../configuration/runtime-hooks.md#первоначальный-прокси-pretooluse).
 
 ### session-scoped source resolution
 

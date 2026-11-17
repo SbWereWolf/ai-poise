@@ -214,6 +214,13 @@ Record every accepted global decision in its canonical documentation and a conci
 linking to the
 exact section; co-deliver the Russian source and English projection. Follow
 [global decision recording](docs/governance/development-rules.md#фиксация-глобальных-решений).
+
+Before integration, apply [both database test passes](docs/workflows/batch-work.md#два-прогона-на-бд-перед-интеграцией)
+to the merged candidate in the Task worktree: migrated development databases first,
+then consistent copies of primary-instance databases after candidate migrations.
+Record both actual database inputs and outcomes in current methods/evidence; an empty
+method registry or a schema-reset test is not proof. Primary databases remain read-only.
+
 Record each confirmed harness defect in its appropriate Task, reusing an existing
 Task or registering one draft when none fits. Put reproduction, recovery records
 and necessary attachments in that Task. Keep only a concise active known-bug

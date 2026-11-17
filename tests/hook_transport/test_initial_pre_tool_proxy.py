@@ -5,6 +5,8 @@ Earliest GREEN: implementation. The separate controls remain GREEN now.
 import json
 import math
 from pathlib import Path
+from copy import deepcopy
+import shlex
 
 import pytest
 
@@ -207,11 +209,33 @@ def test_member_update_keeps_both_single_entries_and_restores_logical_changes(sc
     scene.publish(event='SessionStart')
     scene.publish()
     before = json.loads(scene.hooks.read_text())
+    old_path = scene.receipts[1]['definition_path']
+    old_definition = json.loads(Path(old_path).read_text())
+    old_command = scene.tool_members[1]['hooks'][0]['command']
     scene.change_tool(1, timeout=12)
     current = json.loads(scene.hooks.read_text())
     assert len(current['hooks']['PreToolUse']) == len(current['hooks']['SessionStart']) == 1
     assert current['hooks']['SessionStart'] == before['hooks']['SessionStart']
-    assert current['hooks']['PostToolUse'] == before['hooks']['PostToolUse']
+    new_path = scene.receipts[1]['definition_path']
+    assert new_path != old_path
+    expected_post = deepcopy(before['hooks']['PostToolUse'])
+    # Match the actual participant, including any preceding foreign group.
+    affected = [handler for group in expected_post for handler in group['hooks']
+                if handler['command'] == old_command]
+    assert len(affected) == 1
+    old_arguments = shlex.split(old_command)
+    definition_argument = old_arguments.index('--definition') + 1
+    assert old_arguments[definition_argument] == old_path
+    assert old_command.count(old_path) == 1
+    affected[0]['command'] = old_command.replace(old_path, new_path, 1)
+    expected_arguments = old_arguments.copy()
+    expected_arguments[definition_argument] = new_path
+    assert shlex.split(affected[0]['command']) == expected_arguments
+    assert current['hooks']['PostToolUse'] == expected_post
+    new_definition = json.loads(Path(new_path).read_text())
+    assert next(row for row in new_definition['events'] if row['event'] == 'PostToolUse') == next(
+        row for row in old_definition['events'] if row['event'] == 'PostToolUse')
+    assert new_definition['routes']['PostToolUse'] == old_definition['routes']['PostToolUse']
     assert scene.operation('restore')[0] == 0
     restored = json.loads(scene.hooks.read_text())
     assert restored['hooks']['SessionStart'] == before['hooks']['SessionStart']

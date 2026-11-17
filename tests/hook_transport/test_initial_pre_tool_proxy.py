@@ -68,7 +68,10 @@ def test_either_projection_can_be_restored_without_removing_the_other(scene, fir
 def test_selection_uses_tool_name_and_forwards_original_input(scene, tool, source, selected):
     handler = scene.publish()
     raw = scene.tool_raw(tool=tool, source=source, repository='other', large=True)
-    assert len(raw) > 5000 and len(raw) < 1048576
+    assert len(raw.decode('utf-8')) > max(
+        service.settings.raw['output_chars'] for service in scene.services[:2])
+    assert len(raw) <= min(
+        service.settings.raw['max_input_bytes'] for service in scene.services[:2])
     result = invoke(handler['command'], raw, scene.root)
     assert (result.returncode, result.stdout, result.stderr) == (0, b'{}\n', b'')
     scene.assert_calls(raw, selected)
@@ -93,7 +96,8 @@ def test_real_old_behaviour_is_preserved_by_proxy(scene, case):
     assert_deliveries(scene, case)
 
 
-@pytest.mark.parametrize('codes,expected', [([1, 0], 1), ([1, 1], 1), ([1, 2], 2)])
+@pytest.mark.parametrize('codes,expected', [
+    ([1, 0], 1), ([1, 1], 1), ([1, 2], 2), ([2, 0], 2)])
 def test_callback_errors_keep_order_and_do_not_manufacture_json_control(scene, codes, expected):
     scene.bind()
     diagnostics = [b'first private diagnostic\n', b'second private diagnostic\n']
@@ -117,8 +121,12 @@ def test_failure_is_recorded_and_later_callback_still_runs(scene, failure):
         scene.outcome(0, stdout=b'not JSON\n')
     elif failure == 'timeout':
         scene.outcome(0, mode='wait')
-        scene.change_tool(0, timeout=0.2)
     handler = scene.publish()
+    if failure == 'timeout':
+        # Update through the active projection's owner: the first callback
+        # stays first, and the second must still run after its actual timeout.
+        scene.change_tool(0, timeout=0.2)
+        handler = json.loads(scene.hooks.read_text())['hooks']['PreToolUse'][0]['hooks'][0]
     environment = {}
     witness = scene.root / 'spawn-exception.json'
     if failure == 'shell-127':
@@ -161,6 +169,8 @@ def test_complete_streams_are_separate_per_invocation_and_session_and_follow_cle
     for session, suffix in [('tool-capture-a', b'first'), ('tool-capture-a', b'second'),
                             ('tool-capture-b', b'third')]:
         diagnostic = original + suffix
+        assert len(diagnostic.decode('utf-8')) > max(
+            service.settings.raw['output_chars'] for service in scene.services[:2])
         scene.outcome(0, stdout=b'', stderr=diagnostic, code=1)
         scene.reset_calls()
         raw = scene.tool_raw(session=session, large=True)

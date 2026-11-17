@@ -91,7 +91,7 @@ def parser():
     hook.add_argument('--settings',type=Path,required=True)
     hook.add_argument('--definition',type=Path,required=True)
     hook.add_argument('--retry',type=Path,help='Retry one saved committed lifecycle delivery without replaying a native event')
-    proxy=sub.add_parser('hook-proxy',help='Run the original SessionStart callback projection')
+    proxy=sub.add_parser('hook-proxy',help='Run an owned initial callback projection')
     proxy.add_argument('--settings',type=Path,required=True)
     proxy.add_argument('--snapshot',type=Path,required=True)
     bound=sub.add_parser('hook-work',help='One work packet using a generated session binding')

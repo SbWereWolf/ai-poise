@@ -10,6 +10,7 @@ import uuid
 from ..common import PoiseError, digest, encoded, exact_keys
 from ..execution import RegisteredCheckRunner, RegisteredLaunchFailure
 from ..modules.hook_transport.session_start_proxy import InitialSessionStartProjection
+from ..modules.hook_transport.pre_tool_use_proxy import InitialPreToolUseProjection
 from ..modules.session_establishment.domain import CallerIdentity
 from ..modules.result_views.domain import utf8_json_text
 from .goal_config import read_document, strict_json
@@ -17,51 +18,85 @@ from .session_establishment import project_session_runtime_path, observed_projec
 
 
 
-def snapshot_path(settings):
-    return settings.hooks_file.with_name(settings.hooks_file.name + '.session-start-proxy.json')
+PROJECTIONS = {'SessionStart': ('session-start', InitialSessionStartProjection),
+               'PreToolUse': ('pre-tool-use', InitialPreToolUseProjection)}
 
 
-def snapshot(settings):
-    path = snapshot_path(settings)
+def snapshot_path(settings, event_name='SessionStart'):
+    slug, _ = PROJECTIONS[event_name]
+    return settings.hooks_file.with_name(settings.hooks_file.name + '.' + slug + '-proxy.json')
+
+
+def snapshot(settings, event_name='SessionStart'):
+    path = snapshot_path(settings, event_name)
     if not path.exists():
         return None
     value = read_document(path)
-    if value.get('schema') != 'initial-session-start-proxy-1' or value['hooks_path'] != str(settings.hooks_file):
-        raise PoiseError('Invalid SessionStart projection; restore its owner configuration')
+    slug, _ = PROJECTIONS[event_name]
+    if value.get('schema') != 'initial-' + slug + '-proxy-1' or value['hooks_path'] != str(settings.hooks_file):
+        raise PoiseError('Invalid ' + event_name + ' projection; restore its owner configuration')
     return value
 
 
+def snapshots(settings):
+    return {event: value for event in PROJECTIONS
+            if (value := snapshot(settings, event)) is not None}
+
+
 def require_settled(settings, allowed=None):
-    state = snapshot(settings)
-    reference = None if state is None else state.get('publication')
-    if reference is None or allowed == (reference['owner_settings_path'], reference['request_id']):
-        return
     from .hook_transport import HookSettings
     from .diagnostic_io import readonly_database
-    owner = HookSettings(reference['owner_settings_path'])
-    with readonly_database(owner.database) as db:
-        row = db.execute('SELECT data FROM operations WHERE id=?', (reference['request_id'],)).fetchone()
-    if row is None or json.loads(row[0])['phase'] != 'completed':
-        raise PoiseError('Pending shared SessionStart publication: repeat saved request '
-                         + reference['request_id'] + ' through runtime-config --settings '
-                         + reference['owner_settings_path'])
+    for event, state in snapshots(settings).items():
+        reference = state.get('publication')
+        if reference is None or allowed == (reference['owner_settings_path'], reference['request_id']):
+            continue
+        owner = HookSettings(reference['owner_settings_path'])
+        with readonly_database(owner.database) as db:
+            row = db.execute('SELECT data FROM operations WHERE id=?', (reference['request_id'],)).fetchone()
+        if row is None or json.loads(row[0])['phase'] != 'completed':
+            raise PoiseError('Pending shared ' + event + ' publication: repeat saved request '
+                + reference['request_id'] + ' through runtime-config --settings '
+                + reference['owner_settings_path'])
 
 
 def body(value):
     return (utf8_json_text(value, indent=2) + '\n').encode()
 
 
-def project_document(settings, document, prior=None, settings_overrides=None):
-    prior = snapshot(settings) if prior is None else prior
+def project_document(settings, document, prior=None, settings_overrides=None, *, event_name='SessionStart'):
+    projection = PROJECTIONS[event_name][1]
+    prior = snapshot(settings, event_name) if prior is None else prior
     if not prior or not prior['active']:
         return document, prior
     after = deepcopy(prior)
-    after['groups'] = deepcopy(document['hooks']['SessionStart'])
-    limits = InitialSessionStartProjection.budgets(after['groups'])
+    after['groups'] = deepcopy(document['hooks'][event_name])
+    limits = projection.budgets(after['groups'])
     after['entry']['hooks'][0].update(timeout=limits['timeout'], additionalContextLimit=limits['context'])
     after['budgets'] = limits
     after['max_input_bytes'], after['output_chars'] = original_limits(after['groups'], settings_overrides)
-    return InitialSessionStartProjection.physical(document, after), after
+    return projection.physical(document, after), after
+
+
+def logical_document(settings, document):
+    require_settled(settings)
+    for event, state in snapshots(settings).items():
+        document = PROJECTIONS[event][1].logical(document, state)
+    return document
+
+
+def preserve_member_order(settings, document, candidate, previous, desired):
+    for event, state in snapshots(settings).items():
+        if state['active']:
+            candidate = PROJECTIONS[event][1].preserve_member_order(document, candidate, previous, desired)
+    return candidate
+
+
+def project_documents(settings, document, settings_overrides=None):
+    states = {}
+    for event, prior in snapshots(settings).items():
+        document, states[event] = project_document(settings, document, prior,
+            settings_overrides, event_name=event)
+    return document, states
 
 
 def original_limits(groups, overrides=None):
@@ -83,17 +118,19 @@ def original_limits(groups, overrides=None):
     return min(admissions), sum(outputs) + 6 * (len(outputs) - 1)
 
 
-def publish(repository, packet):
+def publish(repository, packet, *, event_name='SessionStart'):
     """Use the existing registry journal and native writer, not another registry."""
+    slug, projection = PROJECTIONS[event_name]
+    operation_kind = slug + '-proxy'
     from . import hook_transport as transport
-    exact_keys(packet, {'action', 'request_id', 'expected_revision'}, 'session-start-proxy input')
+    exact_keys(packet, {'action', 'request_id', 'expected_revision'}, operation_kind + ' input')
     if packet['action'] not in ('publish', 'restore'):
-        raise PoiseError('SessionStart proxy action must be publish or restore')
+        raise PoiseError(f'{event_name} proxy action must be publish or restore')
     settings, registry = repository.settings, repository.registry
     key = packet['request_id']
     if not isinstance(key, str) or not key.strip():
-        raise PoiseError('SessionStart request_id required')
-    identity = digest(['session-start-proxy', packet])
+        raise PoiseError(f'{event_name} request_id required')
+    identity = digest([operation_kind, packet])
     with settings.native_file_locked():
         require_settled(settings, (str(settings.path), key))
         with registry.transaction() as db:
@@ -101,33 +138,33 @@ def publish(repository, packet):
         operation = None if row is None else json.loads(row[0])
         if operation is not None:
             if operation.get('digest') != identity:
-                raise PoiseError('Request id reused with conflicting SessionStart inputs')
+                raise PoiseError(f'Request id reused with conflicting {event_name} inputs')
             if operation['phase'] == 'completed':
                 return operation['receipt']
         else:
             if repository.revision() != packet['expected_revision']:
-                raise PoiseError('SessionStart configuration revision changed; read current revision and submit matching expected_revision')
+                raise PoiseError(f'{event_name} configuration revision changed; read current revision and submit matching expected_revision')
             native = read_document(settings.hooks_file)
-            prior = snapshot(settings)
-            logical = InitialSessionStartProjection.logical(native, prior)
+            prior = snapshot(settings, event_name)
+            logical = projection.logical(native, prior)
             if packet['action'] == 'publish':
                 if prior and prior['active']:
-                    raise PoiseError('SessionStart proxy already active; use its current owner or restore before republishing')
-                groups = logical.get('hooks', {}).get('SessionStart', [])
-                budgets = InitialSessionStartProjection.budgets(groups)
+                    raise PoiseError(f'{event_name} proxy already active; use its current owner or restore before republishing')
+                groups = logical.get('hooks', {}).get(event_name, [])
+                budgets = projection.budgets(groups)
                 admission, output = original_limits(groups)
                 entry = {'matcher': '', 'hooks': [{'type': 'command',
-                    'command': settings.command('hook-proxy', '--snapshot', str(snapshot_path(settings))),
+                    'command': settings.command('hook-proxy', '--snapshot', str(snapshot_path(settings, event_name))),
                     'timeout': budgets['timeout'], 'additionalContextLimit': budgets['context'],
-                    'async': False, 'statusMessage': 'Run original SessionStart handlers'}]}
-                after = {'schema': 'initial-session-start-proxy-1', 'active': True,
+                    'async': False, 'statusMessage': 'Run original ' + event_name + ' handlers'}]}
+                after = {'schema': 'initial-' + slug + '-proxy-1', 'active': True,
                     'hooks_path': str(settings.hooks_file), 'owner_project_config': str(settings.project_config),
                     'owner_settings_path': str(settings.path), 'entry': entry, 'groups': groups,
                     'budgets': budgets, 'max_input_bytes': admission, 'output_chars': output}
-                candidate = InitialSessionStartProjection.physical(logical, after)
+                candidate = projection.physical(logical, after)
             else:
                 if not prior or not prior['active']:
-                    raise PoiseError('No active SessionStart projection; inspect current owner state')
+                    raise PoiseError(f'No active {event_name} projection; inspect current owner state')
                 candidate = logical
                 after = {k: prior[k] for k in ('schema', 'hooks_path', 'owner_project_config', 'owner_settings_path')}
                 after['active'] = False
@@ -136,43 +173,43 @@ def publish(repository, packet):
             revision = hashlib.sha256(native_body).hexdigest()
             receipt = {'status': 'published' if packet['action'] == 'publish' else 'restored',
                 'request_id': key, 'hooks_path': str(settings.hooks_file),
-                'snapshot_path': str(snapshot_path(settings)),
-                'revision': repository._configuration_revision(revision, proxy_snapshot=after)}
-            operation = {'kind': 'session-start-proxy', 'digest': identity, 'phase': 'pending',
+                'snapshot_path': str(snapshot_path(settings, event_name)),
+                'revision': repository._configuration_revision(revision, proxy_snapshots={**snapshots(settings), event_name: after})}
+            operation = {'kind': operation_kind, 'digest': identity, 'phase': 'pending',
                 'files': [{'path': str(path), 'before': path.read_bytes().hex() if path.exists() else None,
                            'after': content.hex()} for path, content in (
-                               (snapshot_path(settings), body(after)), (settings.hooks_file, native_body))],
+                               (snapshot_path(settings, event_name), body(after)), (settings.hooks_file, native_body))],
                 'receipt': receipt}
             with registry.transaction() as db:
                 if repository.revision() != packet['expected_revision']:
-                    raise PoiseError('SessionStart inputs changed during preparation; read revision and retry')
+                    raise PoiseError(f'{event_name} inputs changed during preparation; read revision and retry')
                 db.execute('INSERT INTO operations VALUES(?,?)', (key, encoded(operation)))
         for item in operation['files']:
             path = Path(item['path'])
             current = path.read_bytes().hex() if path.exists() else None
             if current not in (item['before'], item['after']):
-                raise PoiseError('Pending SessionStart publication drift; restore recorded inputs then repeat request ' + key)
+                raise PoiseError(f'Pending {event_name} publication drift; restore recorded inputs then repeat request ' + key)
         native_after = next(item for item in operation['files'] if item['path'] == str(settings.hooks_file))
-        snapshot_after = next(item for item in operation['files'] if item['path'] == str(snapshot_path(settings)))
+        snapshot_after = next(item for item in operation['files'] if item['path'] == str(snapshot_path(settings, event_name)))
         prepared_revision = repository._configuration_revision(
             hashlib.sha256(bytes.fromhex(native_after['after'])).hexdigest(),
-            proxy_snapshot=strict_json(bytes.fromhex(snapshot_after['after']).decode('utf-8')))
+            proxy_snapshots={**snapshots(settings), event_name: strict_json(bytes.fromhex(snapshot_after['after']).decode('utf-8'))})
         if prepared_revision != operation['receipt']['revision']:
             untouched = all((Path(item['path']).read_bytes().hex() if Path(item['path']).exists() else None)
                             == item['before'] for item in operation['files'])
             if not untouched:
-                raise PoiseError('Pending SessionStart configuration inputs changed after partial file effects; '
+                raise PoiseError(f'Pending {event_name} configuration inputs changed after partial file effects; '
                                  'preserve those files, restore the recorded configuration inputs through their '
                                  'existing owner, then repeat saved request ' + key)
             receipt = {'status': 'rejected', 'request_id': key,
-                'reason': 'Pending SessionStart full configuration inputs changed before file effects',
+                'reason': f'Pending {event_name} full configuration inputs changed before file effects',
                 'current_revision': repository.revision(),
                 'continuation': 'Read current configuration revision and submit the action with a new request_id '
                                 'and matching expected_revision; the original request remains rejected'}
             operation.update(phase='completed', receipt=receipt)
             with registry.transaction() as db:
                 db.execute('UPDATE operations SET data=? WHERE id=?', (encoded(operation), key))
-                registry.event_in(db, None, 'session-start-proxy.refused', {'request_id': key})
+                registry.event_in(db, None, operation_kind + '.refused', {'request_id': key})
             return receipt
         for item in operation['files']:
             path = Path(item['path'])
@@ -181,7 +218,7 @@ def publish(repository, packet):
         with registry.transaction() as db:
             operation['phase'] = 'completed'
             db.execute('UPDATE operations SET data=? WHERE id=?', (encoded(operation), key))
-            registry.event_in(db, None, 'session-start-proxy.completed', {'request_id': key})
+            registry.event_in(db, None, operation_kind + '.completed', {'request_id': key})
         return operation['receipt']
 
 
@@ -195,7 +232,7 @@ class SessionStartMemberExecutor:
         _, profile, _ = load_harness_config(configuration['owner_project_config'])
         CallerIdentity.native(profile['project'], event['session_id'])
         assigned = observed_project_session_id(configuration['owner_project_config'], event['session_id'])
-        self.directory = project_session_runtime_path(configuration['owner_project_config'], assigned) / 'initial-session-start-proxy' / uuid.uuid4().hex
+        self.directory = project_session_runtime_path(configuration['owner_project_config'], assigned) / ('initial-' + PROJECTIONS[event['hook_event_name']][0] + '-proxy') / uuid.uuid4().hex
         self.directory.mkdir(parents=True)
         self.input = self.directory / 'input.json'
         self.input.write_bytes(raw)
@@ -246,14 +283,16 @@ class SessionStartMemberExecutor:
 
 
 def retire_capture(settings, event, definition_path):
-    state = snapshot(settings)
-    if state and event.get('hook_event_name') == 'SessionEnd':
+    states = snapshots(settings)
+    if states and event.get('hook_event_name') == 'SessionEnd':
         from .hook_transport import _read_definition
         from ..modules.hook_transport.domain import parse_native_event
         parse_native_event(event, _read_definition(settings, definition_path))
         from .harness_config import load_harness_config
         from .session_establishment import remove_session_runtime
-        _, profile, _ = load_harness_config(state['owner_project_config'])
-        CallerIdentity.native(profile['project'], event['session_id'])
-        assigned = observed_project_session_id(state['owner_project_config'], event['session_id'])
-        remove_session_runtime(project_session_runtime_path(state['owner_project_config'], assigned) / 'initial-session-start-proxy')
+        for event_name, state in states.items():
+            _, profile, _ = load_harness_config(state['owner_project_config'])
+            CallerIdentity.native(profile['project'], event['session_id'])
+            assigned = observed_project_session_id(state['owner_project_config'], event['session_id'])
+            remove_session_runtime(project_session_runtime_path(state['owner_project_config'], assigned)
+                / ('initial-' + PROJECTIONS[event_name][0] + '-proxy'))

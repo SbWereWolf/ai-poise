@@ -320,10 +320,9 @@ class FileHookRepository:
         source = self.settings
         if proposed.raw == source.raw and proposed.path == source.path:
             return installation['receipt']
-        from .session_start_proxy import snapshot
-        proxy = snapshot(source)
-        if proxy and proxy['active']:
-            raise PoiseError('Restore SessionStart through its owner before relocating active hook resources')
+        from .session_start_proxy import snapshots
+        if any(state['active'] for state in snapshots(source).values()):
+            raise PoiseError('Restore active callback projections through their owner before relocating hook resources')
         if proposed.project_config != source.project_config:
             raise PoiseError('Hook relocation cannot change project association')
         definition_path = Path(installation['receipt']['definition_path'])
@@ -372,7 +371,7 @@ class FileHookRepository:
         p=self.settings.hooks_file
         return file_digest(p) if p.exists() else None
 
-    def _configuration_revision(self, native_revision, overrides=None, *, settings_raw=None, proxy_snapshot=...):
+    def _configuration_revision(self, native_revision, overrides=None, *, settings_raw=None, proxy_snapshot=..., proxy_snapshots=None, pre_tool_proxy_snapshot=...):
         """Full raw working inputs, independent of the native-file CAS token."""
         if native_revision is None:
             return None
@@ -412,25 +411,33 @@ class FileHookRepository:
             path = TaskHarnessAdapter.resolve_task_configuration(self.settings.project_config)
             _, _, workflows = load_config(path)
             task = {'config': read_document(path), 'workflows': workflows}
-        from .session_start_proxy import snapshot
-        projection = snapshot(self.settings) if proxy_snapshot is ... else proxy_snapshot
+        from .session_start_proxy import snapshots
+        projections = snapshots(self.settings) if proxy_snapshots is None else dict(proxy_snapshots)
+        if proxy_snapshot is not ...:
+            projections['SessionStart'] = proxy_snapshot
+        if pre_tool_proxy_snapshot is not ...:
+            projections['PreToolUse'] = pre_tool_proxy_snapshot
         value = {'native_file': native_revision, 'definitions': definitions,
                        'sources': sources, 'settings': (read_document(self.settings.path)
                            if settings_raw is None else settings_raw),
                        'project': project, 'association': association, 'task': task}
-        if projection is not None:
-            value['session_start_proxy'] = {k: v for k, v in projection.items() if k != 'publication'}
+        for event, projection in projections.items():
+            if projection is not None:
+                key = {'SessionStart': 'session_start_proxy', 'PreToolUse': 'pre_tool_use_proxy'}[event]
+                value[key] = {k: v for k, v in projection.items() if k != 'publication'}
         return digest(value)
 
     def logical_document(self, document):
-        from .session_start_proxy import snapshot, require_settled
-        from ..modules.hook_transport.session_start_proxy import InitialSessionStartProjection
-        require_settled(self.settings)
-        return InitialSessionStartProjection.logical(document, snapshot(self.settings))
+        from .session_start_proxy import logical_document
+        return logical_document(self.settings, document)
 
     def session_start_proxy(self, packet):
         from .session_start_proxy import publish
         return publish(self, packet)
+
+    def pre_tool_use_proxy(self, packet):
+        from .session_start_proxy import publish
+        return publish(self, packet, event_name='PreToolUse')
 
     def revision(self):
         return self._configuration_revision(self.native_revision())
@@ -601,14 +608,12 @@ class FileHookRepository:
         definition_path=descendant(s.definitions,digest(definition.data)+'.json')
         desired=self._groups(definition,definition_path)
         candidate=merge_hook_document(document,previous,desired)
-        from .session_start_proxy import snapshot
-        if (snapshot(s) or {}).get('active'):
-            from ..modules.hook_transport.session_start_proxy import InitialSessionStartProjection
-            candidate = InitialSessionStartProjection.preserve_member_order(document, candidate, previous, desired)
-        from .session_start_proxy import project_document, snapshot_path, body as proxy_body
-        candidate, proxy_after = project_document(s, candidate)
-        if proxy_after is not None and proxy_after['active']:
-            proxy_after['publication'] = {'owner_settings_path': str(s.path), 'request_id': request_id}
+        from .session_start_proxy import preserve_member_order, project_documents, snapshot_path, body as proxy_body
+        candidate = preserve_member_order(s, document, candidate, previous, desired)
+        candidate, proxy_states = project_documents(s, candidate)
+        for state in proxy_states.values():
+            if state['active']:
+                state['publication'] = {'owner_settings_path': str(s.path), 'request_id': request_id}
         body=(json.dumps(candidate,ensure_ascii=False,indent=2,sort_keys=True)+'\n').encode()
         import hashlib
         revision=hashlib.sha256(body).hexdigest()
@@ -617,14 +622,16 @@ class FileHookRepository:
             'events':[e['event'] for e in definition.data['events']],
             'trust_status':'requires_user_review','live_codex':'not_observed'}
         receipt['configuration_revision'] = self._configuration_revision(revision,
-            {definition.data['id']: definition.data}, proxy_snapshot=proxy_after)
+            {definition.data['id']: definition.data}, proxy_snapshots=proxy_states)
         if proof is not None:receipt['reconciliation']=proof
         operation={'digest':packet,'phase':'pending','before':native_before,
             'before_configuration':before,'candidate':candidate,
             'groups':desired,'definition':definition.data,'receipt':receipt}
-        if proxy_after is not None and proxy_after['active']:
-            path = snapshot_path(s)
-            operation['proxy_file'] = {'path': str(path), 'before': path.read_bytes().hex(), 'after': proxy_body(proxy_after).hex()}
+        for event, state in proxy_states.items():
+            if state['active']:
+                path = snapshot_path(s, event)
+                field = {'SessionStart': 'proxy_file', 'PreToolUse': 'pre_tool_proxy_file'}[event]
+                operation[field] = {'path': str(path), 'before': path.read_bytes().hex(), 'after': proxy_body(state).hex()}
         if proof is not None:operation['prior_installation']=prior_installation
         return operation
 
@@ -659,10 +666,16 @@ class FileHookRepository:
                 if now!=receipt['revision']:raise PoiseError('Installed hooks changed since the saved receipt')
                 return receipt
             if now not in (operation['before'],receipt['revision']):raise PoiseError('Pending hook installation conflicts with current file')
-            projection = operation.get('proxy_file')
-            proxy_after = ... if projection is None else json.loads(bytes.fromhex(projection['after']))
+            from .session_start_proxy import snapshots
+            proxy_states = snapshots(s)
+            projections = []
+            for event, field in (('SessionStart', 'proxy_file'), ('PreToolUse', 'pre_tool_proxy_file')):
+                projection = operation.get(field)
+                if projection is not None:
+                    proxy_states[event] = json.loads(bytes.fromhex(projection['after']))
+                    projections.append(projection)
             if self._configuration_revision(receipt['revision'],
-                    {operation['definition']['id']: operation['definition']}, proxy_snapshot=proxy_after) != receipt['configuration_revision']:
+                    {operation['definition']['id']: operation['definition']}, proxy_snapshots=proxy_states) != receipt['configuration_revision']:
                 raise PoiseError('Pending handler/settings configuration changed; restore its recorded inputs '
                                  'before retrying the saved publication')
             proof=receipt.get('reconciliation')
@@ -674,11 +687,11 @@ class FileHookRepository:
             path=Path(receipt['definition_path']);body=(json.dumps(operation['definition'],ensure_ascii=False,indent=2)+'\n').encode()
             if path.exists() and path.read_bytes()!=body:raise PoiseError('Immutable hook definition was changed')
             if not path.exists():atomic_write(path,body,s.raw['file_mode'])
-            if projection is not None:
+            for projection in projections:
                 target = Path(projection['path'])
                 current = target.read_bytes().hex() if target.exists() else None
                 if current not in (projection['before'], projection['after']):
-                    raise PoiseError('Pending SessionStart projection drift; restore recorded input and retry')
+                    raise PoiseError('Pending callback projection drift at ' + str(target) + '; restore recorded input and retry')
                 if current != projection['after']:
                     atomic_write(target, bytes.fromhex(projection['after']), s.raw['file_mode'])
             if now!=receipt['revision']:
@@ -725,6 +738,10 @@ class HookService:
     def session_start_proxy(self, packet):
         with self.project_fence.locked():
             return self.repository.session_start_proxy(packet)
+
+    def pre_tool_use_proxy(self, packet):
+        with self.project_fence.locked():
+            return self.repository.pre_tool_use_proxy(packet)
 
     def reconfigure(self, packet):
         from .hook_reconfiguration import reconfigure

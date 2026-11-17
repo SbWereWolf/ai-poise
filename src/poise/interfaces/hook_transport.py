@@ -88,6 +88,10 @@ def execute(command,args,stream,output,error, *, started_at=None):
             result = service.session_start_proxy(packet['input'])
             _write(service,result,output)
             return cfg['exit_codes']['rejected' if result['status'] == 'rejected' else 'success']
+        if packet['operation'] == 'pre-tool-use-proxy':
+            result = service.pre_tool_use_proxy(packet['input'])
+            _write(service,result,output)
+            return cfg['exit_codes']['rejected' if result['status'] == 'rejected' else 'success']
         if packet['operation'] in ('install','reconcile','reconfigure'):
             action=getattr(service,packet['operation'])
             result=action(packet['input'])
@@ -152,26 +156,31 @@ def setup(args,stream,output,error):
 
 def proxy_execute(args, stream, output, error):
     from ..application.session_start_proxy import InitialSessionStartProxy
-    from ..infrastructure.session_start_proxy import snapshot, snapshot_path, SessionStartMemberExecutor
+    from ..application.pre_tool_use_proxy import InitialPreToolUseProxy
+    from ..infrastructure.session_start_proxy import snapshot, snapshot_path, SessionStartMemberExecutor, PROJECTIONS
     try:
         settings = HookSettings(args.settings)
-        if Path(args.snapshot).resolve() != snapshot_path(settings):
-            raise PoiseError('Select the owned SessionStart snapshot path')
+        event_name = next((event for event in PROJECTIONS
+                           if Path(args.snapshot).resolve() == snapshot_path(settings, event)), None)
+        if event_name is None:
+            raise PoiseError('Select an owned initial callback snapshot path')
         with settings.native_file_locked():
             from ..infrastructure.session_start_proxy import require_settled
             require_settled(settings)
-            state = snapshot(settings)
+            state = snapshot(settings, event_name)
             if state is None or not state['active']:
-                raise PoiseError('SessionStart projection is inactive; reload current native registration')
-            from ..modules.hook_transport.session_start_proxy import InitialSessionStartProjection
-            InitialSessionStartProjection.logical(strict_json(settings.hooks_file.read_text()), state)
+                raise PoiseError(event_name + ' projection is inactive; reload current native registration')
+            PROJECTIONS[event_name][1].logical(strict_json(settings.hooks_file.read_text()), state)
         raw = stream.read(state['max_input_bytes'] + 1)
         if len(raw) > state['max_input_bytes']:
             raise PoiseError('Native proxy packet exceeds configured input limit')
         event = strict_json(raw.decode('utf-8'))
-        if not isinstance(event, dict) or event.get('hook_event_name') != 'SessionStart':
-            raise PoiseError('Native SessionStart object required')
-        result, diagnostics, code = InitialSessionStartProxy(SessionStartMemberExecutor(settings)).run(state, raw, event)
+        if not isinstance(event, dict):
+            raise PoiseError('Native hook JSON object required')
+        if event.get('hook_event_name') != event_name:
+            raise PoiseError('Native ' + event_name + ' object required')
+        proxy = {'SessionStart': InitialSessionStartProxy, 'PreToolUse': InitialPreToolUseProxy}[event_name]
+        result, diagnostics, code = proxy(SessionStartMemberExecutor(settings)).run(state, raw, event)
         text = utf8_json_text(result) + '\n'
         if len(text) > state['output_chars']:
             raise PoiseError('Composed native response exceeds admitted member output budgets')

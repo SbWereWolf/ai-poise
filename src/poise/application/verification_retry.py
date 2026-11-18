@@ -1,10 +1,12 @@
 """Explicit recovery of a terminal check failure under the original submitted result."""
+from hashlib import sha256
 from pathlib import Path
 
 from ..common import digest, read_json
 from ..execution import timeout_profile
 from ..modules.foundation.errors import PoiseError
 from .check_attempts import pending_retry, validate_retry_budget
+from .stage_verification import prepare_candidate
 
 
 class VerificationRetry:
@@ -16,8 +18,8 @@ class VerificationRetry:
         data = h.current_task()
         if data is None or data['claimed_by'] != h.session:
             raise PoiseError('Verification retry requires ownership of the current Task')
-        retry, payload = args['retry'], args['result']
-        packet = h.packet_digest({'result': payload, 'artifacts': args['artifacts']})
+        retry = args['retry']
+        packet = h.packet_digest({'result': args['result'], 'artifacts': args['artifacts']})
         intent = digest({'operation': 'verification-retry', 'task': data['id'], 'actor': h.session,
                          'packet': packet, 'retry': retry})
         mapping = h.task_commands.verification_retry_mapping(data['id'], retry['request_id'], intent)
@@ -31,6 +33,12 @@ class VerificationRetry:
         h.task_commands.reviewer_preflight(data['id'], h.session)
         if stage['handler'] in ('apply_plan', 'publish') or data.get('duplicate_reuse') is not None:
             raise PoiseError('Verification retry cannot repeat a stage action or a reuse operation')
+
+        payload, supplied = prepare_candidate(h.work_resources.factory(), args)
+        expected_artifacts = {str(item.path.resolve()): sha256(item.content).hexdigest() for item in supplied}
+        if expected_artifacts:
+            artifacts = h.validate_verification_artifacts(payload['artifact_paths'], data)
+            self.require_supplied_artifacts(artifacts, expected_artifacts)
 
         workspace = h._verification_workspace(data)
         if data['worktree'] is not None and h._git(workspace, 'symbolic-ref', '--short', 'HEAD') != data['branch']:
@@ -55,10 +63,16 @@ class VerificationRetry:
         if mapping is not None:
             if any(mapping.get(name) != value for name, value in binding.items()):
                 raise PoiseError('Verification retry scope or source changed')
-            return self.replay(data, retry, intent, mapping, payload, invocations)
-        return self.start(data, retry, intent, binding, payload, invocations, checks)
+            return self.replay(data, retry, intent, mapping, payload, invocations, expected_artifacts)
+        return self.start(data, retry, intent, binding, payload, invocations, expected_artifacts)
 
-    def start(self, data, retry, intent, binding, payload, invocations, checks):
+    @staticmethod
+    def require_supplied_artifacts(artifacts, expected):
+        actual = {item['path']: item['digest'] for item in artifacts}
+        if any(actual.get(path) != digest for path, digest in expected.items()):
+            raise PoiseError('Supplied verification artifact missing or changed')
+
+    def start(self, data, retry, intent, binding, payload, invocations, expected_artifacts):
         h = self.runtime
         task, tree, key = data['id'], binding['verified_tree'], binding['execution_key']
         previous = h.task_commands.failed_observation_batch(task, tree, key)
@@ -72,25 +86,11 @@ class VerificationRetry:
             raise PoiseError('Original failed verification receipts are missing or changed')
         budgets = [self.frozen_budget(receipt, invocation)
                    for receipt, invocation in zip(receipts, invocations, strict=True)]
-        if not h.validate_stage_entry(data)['passed']:
-            raise PoiseError('stage entry requirements are no longer satisfied')
-        h.validate_verification_artifacts(payload['artifact_paths'], data)
-        h.validate_proof_result(data, payload, tree)
-        for method in checks:
-            h.retention.bind_inputs(data, method)
-        roots = h._roots(data)
-        artifacts = h._candidate_artifacts(data, payload['artifact_paths'], roots)
-        if not h._content_gate(data, 'pre', artifacts)['passed']:
-            raise PoiseError('Verification retry requires the existing preconditions')
-        h.task_commands.begin_check_attempt(
-            task, h.session, tree, key, [method['id'] for method in checks],
-            h.cfg['limits']['verify_attempts'], data['_version'], binding['submission_digest'],
-            h._attempt_identity(tree, invocations),
-            retry={'request_id': retry['request_id'], 'intent': intent, 'budgets': budgets,
-                   'predecessor': previous['id'], 'commit': binding['commit'], 'packet': binding['packet']},
-        )
-        mapping = h.task_commands.verification_retry_mapping(task, retry['request_id'], intent)
-        return self.replay(h.current_task(), retry, intent, mapping, payload, invocations, initial=True)
+        reservation = {'request_id': retry['request_id'], 'intent': intent, 'budgets': budgets,
+                       'predecessor': previous['id'], 'commit': binding['commit'], 'packet': binding['packet']}
+        scope = {'intent': intent, 'mapping': binding, 'reservation': reservation,
+                 'version': data['_version'], 'supplied_artifacts': expected_artifacts}
+        return h.verify(payload, packet_digest=binding['packet'], verification_retry=scope)
 
     @staticmethod
     def frozen_budget(receipt, invocation):
@@ -109,9 +109,9 @@ class VerificationRetry:
             raise PoiseError('Original timeout and capture settings cannot be verified') from exc
         return validate_retry_budget(budget, method_id)
 
-    def replay(self, data, retry, intent, mapping, payload, invocations, *, initial=False):
+    def replay(self, data, retry, intent, mapping, payload, invocations, expected_artifacts):
         h = self.runtime
-        scope = {'retry': retry, 'intent': intent, 'mapping': mapping}
+        scope = {'intent': intent, 'mapping': mapping, 'supplied_artifacts': expected_artifacts}
         pending = data['pending']
         if pending is not None:
             descriptor = pending_retry(pending)
@@ -143,4 +143,4 @@ class VerificationRetry:
                 raise PoiseError('The completed retry was superseded before publication')
             scope['batch'] = batch
         value = h.verify(payload, packet_digest=mapping['packet'], verification_retry=scope)
-        return value if initial else {**value, 'replayed': True}
+        return {**value, 'replayed': True}

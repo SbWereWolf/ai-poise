@@ -99,8 +99,8 @@ def parse_request(value, config):
         if any(not isinstance(retry[field], str) or not retry[field].strip()
                or '\0' in retry[field] for field in fields):
             raise DomainError('verify retry requires nonempty request_id, failed_check_id and reason')
-        if value['input'].get('artifacts') != [] or not isinstance(value['input'].get('result'), dict):
-            raise DomainError('verify retry requires the exact submitted result and no new artifacts')
+        if not isinstance(value['input'].get('result'), dict):
+            raise DomainError('verify retry requires the exact submitted result')
         shapes[op] = {'result', 'artifacts', 'retry'}
 
     def collection_error(detail):

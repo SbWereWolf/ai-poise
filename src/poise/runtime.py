@@ -1614,15 +1614,17 @@ class Poise:
         retry_descriptor = pending_retry(data['pending'])
         if retry_descriptor is not None and verification_retry is None:
             raise PoiseError(retry_continuation(retry_descriptor))
+        new_retry = verification_retry is not None and 'reservation' in verification_retry
         if verification_retry is not None:
             mapping = verification_retry['mapping']
             if (data['status'] != 'active' or stage['id'] != mapping['stage']
                     or data['iteration'] != mapping['iteration']
                     or (data['pending'] is not None and (
-                        retry_descriptor is None or retry_descriptor['intent'] != verification_retry['intent']
+                        new_retry or retry_descriptor is None or retry_descriptor['intent'] != verification_retry['intent']
                         or data['pending']['attempt_id'] != mapping['attempt_id']
                         or digest(retry_descriptor['budgets']) != mapping['budget_digest']))
-                    or (data['pending'] is None and 'batch' not in verification_retry)):
+                    or (new_retry and data['_version'] != verification_retry['version'])
+                    or (data['pending'] is None and not new_retry and 'batch' not in verification_retry)):
                 raise PoiseError('Verification retry reservation or candidate changed')
         if data['pending'] is not None and not (pending_checks or pending_attempt):
             raise PoiseError('Неизвестен исход прерванной проверки; не запускаем повтор вслепую. Смотрите журнал.')
@@ -1698,6 +1700,9 @@ class Poise:
             CommitMessagePolicy(self.cfg['git']['commit_pattern']).require(payload['commit_message'])
         roots = self._roots(data)
         artifacts = self._candidate_artifacts(data, payload['artifact_paths'], roots)
+        if verification_retry is not None:
+            from .application.verification_retry import VerificationRetry
+            VerificationRetry.require_supplied_artifacts(artifacts, verification_retry['supplied_artifacts'])
         check_counts(artifacts, stage['artifact_requirements'])
         if self.runner.context(data['id'])['terminal']:
             check_counts(artifacts, data['contract']['artifact_requirements'])
@@ -1744,7 +1749,9 @@ class Poise:
                     or data['pending']['attempt_id'] != mapping['attempt_id']
                     or digest(current_retry['budgets']) != mapping['budget_digest']):
                 raise PoiseError('Verification retry reservation changed before execution')
-        if verification_retry is not None and not pending_attempt:
+        if new_retry:
+            batch = None
+        elif verification_retry is not None and not pending_attempt:
             batch = verification_retry['batch']
             latest = self.task_commands.observation_batch(data['id'], tree, execution_key)
             if latest is None or latest['id'] != batch['id']:
@@ -1798,9 +1805,18 @@ class Poise:
             else:
                 attempt = mapping['attempt']
         else:
-            if verification_retry is not None and not pending_attempt:
+            if new_retry:
+                self.task_commands.begin_check_attempt(
+                    data['id'], self.session, tree, execution_key,
+                    [m['id'] for m in checks], self.cfg['limits']['verify_attempts'],
+                    verification_retry['version'], current_submission_digest,
+                    self._attempt_identity(tree, invocations),
+                    retry=verification_retry['reservation'],
+                )
+                data = self._task()
+            elif verification_retry is not None and not pending_attempt:
                 raise PoiseError('Unknown check outcome: completed retry receipts changed')
-            if not pending_attempt:
+            elif not pending_attempt:
                 self.runner.begin_check_attempt(
                     data['id'], self.session, tree, execution_key,
                     [m['id'] for m in checks], self.cfg['limits']['verify_attempts'],
@@ -1808,7 +1824,7 @@ class Poise:
                     self._attempt_identity(tree, invocations)
                 )
                 data = self._task()
-            attempt = data['attempts'] if verification_retry is None else mapping['attempt']
+            attempt = data['attempts'] if verification_retry is None or new_retry else mapping['attempt']
             self.store.event(self.session,data['id'],'verify.start',{'stage':stage['id'],'tree':tree,'attempt':attempt,'methods':[m['id'] for m in checks]})
             try:
                 receipts = self._execute_checks(data,stage,tree,checks,invocations,roots)

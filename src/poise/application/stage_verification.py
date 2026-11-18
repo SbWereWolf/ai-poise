@@ -16,6 +16,17 @@ class PreparedVerification:
     outcome: dict | None
 
 
+def prepare_candidate(factory, args):
+    payload = deepcopy(args['result'])
+    if not isinstance(payload.get('artifact_paths'), list) or any(
+            not isinstance(p, str) or not p for p in payload['artifact_paths']):
+        raise PoiseError('artifact_paths must be an explicit list')
+    artifacts = tuple(factory.prepare(args['artifacts']))
+    payload['artifact_paths'] = list(dict.fromkeys(
+        payload['artifact_paths'] + [str(item.path) for item in artifacts]))
+    return payload, artifacts
+
+
 class StageResultVerification:
     def __init__(self, runtime):
         self.runtime = runtime
@@ -37,14 +48,8 @@ class StageResultVerification:
             return PreparedVerification(None, None, None, (), None)
         if data['status'] != 'active' or args['result'] is None:
             raise PoiseError('Active verify requires an explicit result object')
-        payload = deepcopy(args['result'])
-        if not isinstance(payload.get('artifact_paths'), list) or any(
-                not isinstance(p, str) or not p for p in payload['artifact_paths']):
-            raise PoiseError('artifact_paths must be an explicit list')
         factory = h.work_resources.factory()
-        artifacts = tuple(factory.prepare(args['artifacts']))
-        payload['artifact_paths'] = list(dict.fromkeys(
-            payload['artifact_paths'] + [str(x.path) for x in artifacts]))
+        payload, artifacts = prepare_candidate(factory, args)
         if not h.validate_stage_entry(data)['passed']:
             raise PoiseError('stage entry requirements are no longer satisfied')
         h.validate_stage_result(data['id'], payload)

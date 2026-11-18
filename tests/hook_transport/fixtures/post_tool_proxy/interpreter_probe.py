@@ -32,8 +32,9 @@ if os.environ.get('POST_TOOL_SPAWN_RECORD') and module >= 0 and not legacy:
         return original(argv, *args, **kwargs)
 
     subprocess.Popen = observed
-    sys.argv = ['poise', *arguments[module + 2:]]
-    runpy.run_module('poise', run_name='__main__')
+    requested_module = arguments[module + 1]
+    sys.argv = [requested_module, *arguments[module + 2:]]
+    runpy.run_module(requested_module, run_name='__main__')
 else:
     # Existing recorder stays the owner of fixed/delegate native callback probes.
     exec(compile(Path(options['probe_source']).read_bytes(), options['probe_source'], 'exec'),

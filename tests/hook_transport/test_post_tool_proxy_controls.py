@@ -1,5 +1,6 @@
 """Real old-producer controls: these must be GREEN before proxy implementation."""
 import json
+import shlex
 import pytest
 
 from .initial_proxy_support import invoke
@@ -92,3 +93,20 @@ def test_popen_observer_delegates_an_existing_working_proxy_without_inventing_fa
 def test_distinct_project_task_stores_resolve_native_assignments_in_original_proxy(project, tmp_path):
     from .post_tool_project_assignments import assignment_case
     assignment_case(project, tmp_path, proxy=False)
+
+
+def test_interpreter_preserves_non_top_level_module_and_remaining_arguments(scene):
+    command = shlex.join([str(scene.probes[1]), '-P', '-B', '-m',
+                          'poise.infrastructure.hook_worker', '--help'])
+    launches = scene.root / 'module-help-launches.jsonl'
+    result = invoke(command, b'', scene.root,
+                    environment={'POST_TOOL_SPAWN_RECORD': str(launches)})
+    assert result.returncode == 0 and result.stderr == b''
+    text = result.stdout.decode()
+    assert text.startswith('usage: poise.infrastructure.hook_worker ')
+    assert 'Invocation-owned detached capture process' in text
+    for option in ('--settings SETTINGS', '--delivery DELIVERY',
+                   '--invocation INVOCATION', '--ack-fd ACK_FD'):
+        assert option in text
+    assert scene.calls() == []
+    assert not launches.exists()

@@ -8,7 +8,8 @@
     "tests/hook_transport/test_post_tool_proxy_controls.py::test_real_native_tool_result_control[audit]",
     "tests/hook_transport/test_post_tool_proxy_controls.py::test_real_native_tool_result_control[enforce]",
     "tests/hook_transport/test_post_tool_proxy_controls.py::test_popen_observer_delegates_an_existing_working_proxy_without_inventing_failure",
-    "tests/hook_transport/test_post_tool_proxy_controls.py::test_distinct_project_task_stores_resolve_native_assignments_in_original_proxy"
+    "tests/hook_transport/test_post_tool_proxy_controls.py::test_distinct_project_task_stores_resolve_native_assignments_in_original_proxy",
+    "tests/hook_transport/test_post_tool_proxy_controls.py::test_interpreter_preserves_non_top_level_module_and_remaining_arguments"
   ],
   "proxy": [
     "tests/hook_transport/test_initial_post_tool_proxy.py::test_single_post_entry_preserves_other_events_and_exact_logical_commands",

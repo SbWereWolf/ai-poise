@@ -87,3 +87,8 @@ def test_popen_observer_delegates_an_existing_working_proxy_without_inventing_fa
     scene.assert_calls(raw, [2, 0, 1])
     rows = [json.loads(line) for line in launches.read_text().splitlines()]
     assert [row['target'] for row in rows] == [0, 1]
+
+
+def test_distinct_project_task_stores_resolve_native_assignments_in_original_proxy(project, tmp_path):
+    from .post_tool_project_assignments import assignment_case
+    assignment_case(project, tmp_path, proxy=False)

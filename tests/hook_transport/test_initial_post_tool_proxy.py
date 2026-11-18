@@ -88,7 +88,8 @@ def test_malformed_matcher_refuses_before_partial_publication(scene):
                                                  (b'not-json\n', 1)], ids=['success', 'failure'])
 def test_async_metric_does_not_delay_override_or_stop_sync_chain(scene, late_stdout, late_code):
     scene.bind()
-    scene.metric_outcome(stdout=late_stdout, code=late_code, barrier=True)
+    late_stderr = b'late metric diagnostic\n' if late_code else b''
+    scene.metric_outcome(stdout=late_stdout, stderr=late_stderr, code=late_code, barrier=True)
     scene.outcome(0, response={'continue': False, 'stopReason': 'literal ERP stop'})
     handler = scene.publish()
     raw = scene.tool_raw(large=True)
@@ -105,6 +106,9 @@ def test_async_metric_does_not_delay_override_or_stop_sync_chain(scene, late_std
         'metric', 0, 1]
     scene.assert_calls(raw, [0, 1])
     scene.release_metric()
+    from .post_tool_proxy_support import wait_metric_capture
+    terminal = wait_metric_capture(scene, late_stdout, late_stderr, late_code)
+    assert terminal['actual_exit_code'] == late_code
     assert json.loads(result.stdout) == {'continue': False, 'stopReason': 'literal ERP stop'}
 
 
@@ -334,3 +338,8 @@ def test_invalid_native_object_is_refused_without_running_callbacks(scene):
         1, b'', b'Native hook JSON object required\n')
     assert scene.calls() == []
     assert not (scene.trace / 'metric-started').exists()
+
+
+def test_distinct_project_task_stores_keep_post_capture_in_their_observed_assignment(project, tmp_path):
+    from .post_tool_project_assignments import assignment_case
+    assignment_case(project, tmp_path, proxy=True)

@@ -207,3 +207,23 @@ def wait_diagnostic(root, text):
             return
         time.sleep(.01)
     raise AssertionError(('SAVED_ASYNC_DIAGNOSTIC_MISSING', text))
+
+
+def wait_metric_capture(scene, stdout, stderr, code):
+    """Observe a terminal common-runner record, not the child's finish marker."""
+    from .pre_tool_proxy_support import runner_records
+    deadline = time.monotonic() + 5
+    while time.monotonic() < deadline:
+        for record in runner_records(scene):
+            if record['actual_exit_code'] != code or not record.get('capture_complete'):
+                continue
+            out, err = Path(record['stdout']), Path(record['stderr'])
+            if out.is_file() and err.is_file() and (out.read_bytes(), err.read_bytes()) == (stdout, stderr):
+                assert record['termination']['child_reaped'] is True
+                assert record['termination']['capture_complete'] is True
+                assert out != err
+                assert out.is_relative_to(scene.capture_roots['proxy-fixture-session'])
+                assert err.is_relative_to(scene.capture_roots['proxy-fixture-session'])
+                return record
+        time.sleep(.01)
+    raise AssertionError(('LATE_METRIC_CAPTURE_MISSING', code, stdout, stderr))

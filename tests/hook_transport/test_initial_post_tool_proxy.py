@@ -150,9 +150,13 @@ def test_sync_protocol_or_launch_failure_still_runs_the_next_native_command(scen
     elif failure == 'invalid-type':
         scene.outcome(0, stdout=b'[]\n')
     elif failure == 'timeout':
-        scene.change_post(0, timeout=.2)
         scene.outcome(0, mode='wait')
     handler = scene.publish()
+    if failure == 'timeout':
+        # Update the active projection so callback 0 remains first; callback 1
+        # must execute after the actual timeout rather than before it.
+        scene.change_post(0, timeout=.2)
+        handler = json.loads(scene.hooks.read_text())['hooks']['PostToolUse'][0]['hooks'][0]
     if failure == 'shell-127':
         scene.probes[0].unlink()
     raw = scene.tool_raw()

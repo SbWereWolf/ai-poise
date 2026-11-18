@@ -380,6 +380,7 @@ def test_late_worker_write_preserves_retired_capture_absence(scene, monkeypatch,
     path = directory / 'result.json'
     worker.save_member(settings, path, job)
     events = []
+    simulated_callback_pid = os.getpid()  # Test-owned metadata, no callback Popen.
 
     def retire():
         remove_session_runtime(projection)
@@ -392,6 +393,11 @@ def test_late_worker_write_preserves_retired_capture_absence(scene, monkeypatch,
         assert position == 0 and handler == job['handler'] and cleanup == .25
         assert kwargs['parse_response'] is False
         events.append('callback')
+        kwargs['launch_observer'](simulated_callback_pid)
+        running = json.loads(path.read_text())
+        assert running['status'] == 'running' and running['launched'] is True
+        assert running['process_id'] == simulated_callback_pid
+        events.append('launched')
         if retirement != 'during-write':
             retire()
         if retirement == 'exception':
@@ -403,8 +409,9 @@ def test_late_worker_write_preserves_retired_capture_absence(scene, monkeypatch,
         real_replace = os.replace
 
         def replace_after_retirement(*args, **kwargs):
-            if 'retired' not in events:
-                # The actual atomic writer has prepared its temporary file.
+            if 'launched' in events and 'retired' not in events:
+                # Ignore the observer's running save; the terminal writer
+                # has now prepared its temporary file.
                 # Retirement wins before publication; no timing/sleep oracle.
                 retire()
             return real_replace(*args, **kwargs)
@@ -414,6 +421,6 @@ def test_late_worker_write_preserves_retired_capture_absence(scene, monkeypatch,
     os.close(read_fd)
     # run owns/closes write_fd, including its actual exception-save branch.
     worker.run(str(settings.path), str(path), write_fd)
-    assert events == ['callback', 'retired']
+    assert events == ['callback', 'launched', 'retired']
     assert not projection.exists(), 'late worker recreated retired capture subtree'
     assert marker.read_bytes() == b'preserve this other session'

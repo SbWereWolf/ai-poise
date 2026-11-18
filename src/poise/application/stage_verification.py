@@ -1,8 +1,10 @@
 """Canonical public result/artifact preparation shared by verify and handoff."""
 from copy import deepcopy
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any
 
+from ..common import digest
 from ..modules.foundation.errors import PoiseError
 from .check_attempts import PendingVerificationRetry, pending_retry, retry_continuation
 
@@ -25,6 +27,16 @@ def prepare_candidate(factory, args):
     payload['artifact_paths'] = list(dict.fromkeys(
         payload['artifact_paths'] + [str(item.path) for item in artifacts]))
     return payload, artifacts
+
+
+def candidate_artifact_digest(packet, paths, artifacts):
+    if not paths:
+        return None
+    by_path = {item['path']: item['digest'] for item in artifacts}
+    submitted = {str(Path(path).resolve()) for path in paths}
+    if not submitted <= by_path.keys():
+        raise PoiseError('Submitted verification artifact missing or changed')
+    return digest({'packet': packet, 'artifacts': {path: by_path[path] for path in submitted}})
 
 
 class StageResultVerification:

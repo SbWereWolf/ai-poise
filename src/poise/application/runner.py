@@ -41,8 +41,11 @@ class StageRunner:
     def assess_evidence(self, task_id, actor, tree, execution_key):
         return self.tasks.assess_evidence(task_id,actor,tree,execution_key)
 
-    def begin_check_attempt(self, task_id, actor, tree, execution_key, methods, limit, expected_version, submission_digest, identity):
-        return self.tasks.begin_check_attempt(task_id, actor, tree, execution_key, methods, limit, expected_version, submission_digest, identity)
+    def begin_check_attempt(self, task_id, actor, tree, execution_key, methods, limit, expected_version,
+                            submission_digest, identity, *, candidate_artifact_digest=None):
+        return self.tasks.begin_check_attempt(
+            task_id, actor, tree, execution_key, methods, limit, expected_version, submission_digest,
+            identity, candidate_artifact_digest=candidate_artifact_digest)
 
     def current_check_attempt(self, task_id, actor, tree, execution_key, methods):
         return self.tasks.current_check_attempt(task_id, actor, tree, execution_key, methods)

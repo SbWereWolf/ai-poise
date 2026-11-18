@@ -6,7 +6,7 @@ from ..common import digest, read_json
 from ..execution import timeout_profile
 from ..modules.foundation.errors import PoiseError
 from .check_attempts import pending_retry, validate_retry_budget
-from .stage_verification import prepare_candidate
+from .stage_verification import candidate_artifact_digest, prepare_candidate
 
 
 class VerificationRetry:
@@ -36,9 +36,11 @@ class VerificationRetry:
 
         payload, supplied = prepare_candidate(h.work_resources.factory(), args)
         expected_artifacts = {str(item.path.resolve()): sha256(item.content).hexdigest() for item in supplied}
-        if expected_artifacts:
+        artifact_digest = None
+        if payload['artifact_paths']:
             artifacts = h.validate_verification_artifacts(payload['artifact_paths'], data)
             self.require_supplied_artifacts(artifacts, expected_artifacts)
+            artifact_digest = candidate_artifact_digest(packet, payload['artifact_paths'], artifacts)
 
         workspace = h._verification_workspace(data)
         if data['worktree'] is not None and h._git(workspace, 'symbolic-ref', '--short', 'HEAD') != data['branch']:
@@ -63,8 +65,8 @@ class VerificationRetry:
         if mapping is not None:
             if any(mapping.get(name) != value for name, value in binding.items()):
                 raise PoiseError('Verification retry scope or source changed')
-            return self.replay(data, retry, intent, mapping, payload, invocations, expected_artifacts)
-        return self.start(data, retry, intent, binding, payload, invocations, expected_artifacts)
+            return self.replay(data, retry, intent, mapping, payload, invocations, artifact_digest)
+        return self.start(data, retry, intent, binding, payload, invocations, artifact_digest)
 
     @staticmethod
     def require_supplied_artifacts(artifacts, expected):
@@ -72,7 +74,12 @@ class VerificationRetry:
         if any(actual.get(path) != digest for path, digest in expected.items()):
             raise PoiseError('Supplied verification artifact missing or changed')
 
-    def start(self, data, retry, intent, binding, payload, invocations, expected_artifacts):
+    @staticmethod
+    def require_original_artifacts(receipts, artifact_digest):
+        if any(receipt.get('candidate_artifact_digest') != artifact_digest for receipt in receipts):
+            raise PoiseError('Verification retry artifact identity differs from the original failed attempt or is unavailable')
+
+    def start(self, data, retry, intent, binding, payload, invocations, artifact_digest):
         h = self.runtime
         task, tree, key = data['id'], binding['verified_tree'], binding['execution_key']
         previous = h.task_commands.failed_observation_batch(task, tree, key)
@@ -84,12 +91,13 @@ class VerificationRetry:
         receipts = previous['receipts']
         if not h._intact_receipts(task, receipts, invocations, tree):
             raise PoiseError('Original failed verification receipts are missing or changed')
+        self.require_original_artifacts(receipts, artifact_digest)
         budgets = [self.frozen_budget(receipt, invocation)
                    for receipt, invocation in zip(receipts, invocations, strict=True)]
         reservation = {'request_id': retry['request_id'], 'intent': intent, 'budgets': budgets,
                        'predecessor': previous['id'], 'commit': binding['commit'], 'packet': binding['packet']}
         scope = {'intent': intent, 'mapping': binding, 'reservation': reservation,
-                 'version': data['_version'], 'supplied_artifacts': expected_artifacts}
+                 'version': data['_version'], 'candidate_artifact_digest': artifact_digest}
         return h.verify(payload, packet_digest=binding['packet'], verification_retry=scope)
 
     @staticmethod
@@ -109,9 +117,9 @@ class VerificationRetry:
             raise PoiseError('Original timeout and capture settings cannot be verified') from exc
         return validate_retry_budget(budget, method_id)
 
-    def replay(self, data, retry, intent, mapping, payload, invocations, expected_artifacts):
+    def replay(self, data, retry, intent, mapping, payload, invocations, artifact_digest):
         h = self.runtime
-        scope = {'intent': intent, 'mapping': mapping, 'supplied_artifacts': expected_artifacts}
+        scope = {'intent': intent, 'mapping': mapping, 'candidate_artifact_digest': artifact_digest}
         pending = data['pending']
         if pending is not None:
             descriptor = pending_retry(pending)
@@ -120,6 +128,8 @@ class VerificationRetry:
                     or digest(descriptor['budgets']) != mapping['budget_digest']
                     or [run['run_id'] for run in pending['runs']] != mapping['runs']):
                 raise PoiseError('Unknown check outcome: retry reservation identity does not match')
+            if pending.get('candidate_artifact_digest') != artifact_digest:
+                raise PoiseError('Verification retry artifact identity differs from the reserved attempt or is unavailable')
             for invocation, budget in zip(invocations, descriptor['budgets'], strict=True):
                 method = invocation['method']
                 if timeout_profile(method['argv'], method['id'], invocation['environment']) != budget['profile']:
@@ -130,6 +140,7 @@ class VerificationRetry:
             if batch is None or not h._intact_receipts(data['id'], batch['receipts'], invocations, tree):
                 raise PoiseError('Unknown check outcome: retry has no intact completed receipt set')
             receipts = batch['receipts']
+            self.require_original_artifacts(receipts, artifact_digest)
             if not h._usable_receipts(data['id'], receipts, invocations, tree):
                 return {'status': 'checks_failed', 'task': data['id'], 'stage': mapping['stage'],
                         'attempt': mapping['attempt'], 'checks': receipts, 'replayed': True}

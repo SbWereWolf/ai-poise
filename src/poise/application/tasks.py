@@ -1899,9 +1899,10 @@ class TaskCommands:
                 uow.execution.save_prepared(task_id, execution_write, version)
 
     def begin_check_attempt(self, task_id, actor, tree, execution_key, methods, limit, expected_version, submission_digest, identity,
-                            *, retry=None):
+                            *, retry=None, candidate_artifact_digest=None):
         return CheckAttempts(self.unit_of_work).begin(task_id, actor, tree, execution_key, methods, limit,
-                                                     expected_version, submission_digest, identity, retry=retry)
+                                                     expected_version, submission_digest, identity, retry=retry,
+                                                     candidate_artifact_digest=candidate_artifact_digest)
 
     def current_check_attempt(self, task_id, actor, tree, execution_key, methods):
         return CheckAttempts(self.unit_of_work).current(task_id, actor, tree, execution_key, methods)

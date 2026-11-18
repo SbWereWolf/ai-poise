@@ -1700,9 +1700,11 @@ class Poise:
             CommitMessagePolicy(self.cfg['git']['commit_pattern']).require(payload['commit_message'])
         roots = self._roots(data)
         artifacts = self._candidate_artifacts(data, payload['artifact_paths'], roots)
-        if verification_retry is not None:
-            from .application.verification_retry import VerificationRetry
-            VerificationRetry.require_supplied_artifacts(artifacts, verification_retry['supplied_artifacts'])
+        from .application.stage_verification import candidate_artifact_digest
+        artifact_digest = candidate_artifact_digest(packet_digest, payload['artifact_paths'], artifacts)
+        if (verification_retry is not None
+                and artifact_digest != verification_retry['candidate_artifact_digest']):
+            raise PoiseError('Verification retry artifact identity changed before execution')
         check_counts(artifacts, stage['artifact_requirements'])
         if self.runner.context(data['id'])['terminal']:
             check_counts(artifacts, data['contract']['artifact_requirements'])
@@ -1741,6 +1743,9 @@ class Poise:
             data['pending'] = self.runner.current_check_attempt(
                 data['id'], self.session, tree, execution_key, [m['id'] for m in checks]
             )
+            reserved_artifact_digest = data['pending'].get('candidate_artifact_digest')
+            if reserved_artifact_digest is not None and artifact_digest != reserved_artifact_digest:
+                raise PoiseError('Verification artifact identity changed after attempt reservation')
             current_retry = pending_retry(data['pending'])
             if current_retry is not None and verification_retry is None:
                 raise PoiseError(retry_continuation(current_retry))
@@ -1812,16 +1817,19 @@ class Poise:
                     verification_retry['version'], current_submission_digest,
                     self._attempt_identity(tree, invocations),
                     retry=verification_retry['reservation'],
+                    candidate_artifact_digest=artifact_digest,
                 )
                 data = self._task()
             elif verification_retry is not None and not pending_attempt:
                 raise PoiseError('Unknown check outcome: completed retry receipts changed')
             elif not pending_attempt:
+                artifact_binding = ({'candidate_artifact_digest': artifact_digest}
+                                    if artifact_digest is not None else {})
                 self.runner.begin_check_attempt(
                     data['id'], self.session, tree, execution_key,
                     [m['id'] for m in checks], self.cfg['limits']['verify_attempts'],
                     data['_version'], current_submission_digest,
-                    self._attempt_identity(tree, invocations)
+                    self._attempt_identity(tree, invocations), **artifact_binding
                 )
                 data = self._task()
             attempt = data['attempts'] if verification_retry is None or new_retry else mapping['attempt']
@@ -1864,6 +1872,9 @@ class Poise:
                 retained_paths.extend(str(roots['task'] / item['path'])
                                       for item in receipt['retention_method']['artifact_inputs']['files'])
         artifacts = self._candidate_artifacts(data, payload['artifact_paths'] + retained_paths, roots)
+        if (verification_retry is not None and
+                candidate_artifact_digest(packet_digest, payload['artifact_paths'], artifacts) != artifact_digest):
+            raise PoiseError('Verification retry artifact identity changed during execution')
         gate = self._content_gate(data,'post',artifacts)
         if not gate['passed']:
             return self._content_blocked(data,gate,receipts)
@@ -2180,6 +2191,8 @@ class Poise:
                      }}
             for field in ('expectation_digest','provenance_digest','source_provenance'):
                 receipt[field]=invocation[field]
+            if 'candidate_artifact_digest' in attempt:
+                receipt['candidate_artifact_digest'] = attempt['candidate_artifact_digest']
             if passed:
                 try:
                     retained_method = next(item for item in data['contract']['methods']

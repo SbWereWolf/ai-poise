@@ -141,7 +141,8 @@ def validate_attempt(task, actor, attempt, tree, execution_key, methods=None):
             or attempt.get('version') not in (1, 2, 3)
             or set(attempt) != set(expected) | {'version', 'attempt_id', 'runs'} |
                 ({'identity'} if attempt.get('version') in (2, 3) else set()) |
-                ({'retry'} if attempt.get('version') == 3 else set())
+                ({'retry'} if attempt.get('version') == 3 else set()) |
+                ({'candidate_artifact_digest'} if 'candidate_artifact_digest' in attempt else set())
             or any(attempt.get(key) != value for key, value in expected.items())):
         raise DomainError('Check attempt context changed or protocol is unsupported; drift cause undetermined')
     if (type(attempt['iteration']) is not int or attempt['iteration'] < 1
@@ -149,6 +150,11 @@ def validate_attempt(task, actor, attempt, tree, execution_key, methods=None):
         raise DomainError('Invalid check attempt iteration identity')
     if attempt['version'] in (2, 3):
         validate_identity(attempt['identity'])
+    if 'candidate_artifact_digest' in attempt:
+        value = attempt['candidate_artifact_digest']
+        if (attempt['version'] == 1 or not isinstance(value, str) or len(value) != 64
+                or any(char not in '0123456789abcdef' for char in value)):
+            raise DomainError('Invalid verification candidate artifact digest')
     try:
         UUID(attempt['attempt_id'])
         runs = attempt['runs']
@@ -190,6 +196,7 @@ def receipt_matches(attempt, run, receipt):
         'attempt_id': attempt['attempt_id'],
         'submission_digest': attempt['submission_digest'],
         'execution_key': attempt['execution_key'], 'tree': attempt['verified_tree'],
+        'candidate_artifact_digest': attempt.get('candidate_artifact_digest'),
     }.items())
 
 
@@ -204,7 +211,7 @@ class CheckAttempts:
             uow.execution.save_prepared(task_id, prepared, version)
 
     def begin(self, task_id, actor, tree, execution_key, methods, limit, expected_version, submission_digest, identity,
-              *, retry=None):
+              *, retry=None, candidate_artifact_digest=None):
         validate_identity(identity)
         facade = self.unit_of_work()
         inputs = facade.capture(TaskReadSet((task_id,), execution_ids=(task_id,)))
@@ -227,6 +234,8 @@ class CheckAttempts:
             'runs': [{'run_id': str(uuid4()), 'method_id': method, 'started': False, 'termination': None}
                      for method in methods],
         }
+        if candidate_artifact_digest is not None:
+            attempt['candidate_artifact_digest'] = candidate_artifact_digest
         if retry is not None:
             previous = task.evidence_book.failed_batch(
                 task.stage.stage_id, task.state.iteration, submission_digest, tree, execution_key)

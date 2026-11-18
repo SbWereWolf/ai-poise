@@ -1,4 +1,4 @@
-"""Pure shared projection mechanics for the two initial callback consumers."""
+"""Pure shared projection mechanics for event-owned initial callback consumers."""
 from copy import deepcopy
 import math
 import re
@@ -8,6 +8,8 @@ from ..foundation.errors import DomainError
 
 class InitialHookProjection:
     event_name = 'SessionStart'
+    allow_async = False
+    wildcard_all = False
 
     @classmethod
     def logical(cls, document, snapshot):
@@ -35,20 +37,24 @@ class InitialHookProjection:
             if not isinstance(group.get('matcher', ''), str):
                 raise DomainError(f'{cls.event_name} matcher must be text')
             try:
-                re.compile(group.get('matcher', ''))
+                if not (cls.wildcard_all and group.get('matcher') == '*'):
+                    re.compile(group.get('matcher', ''))
             except re.error as exc:
                 raise DomainError(f'Invalid {cls.event_name} matcher; correct its original registration') from exc
         for handler in handlers:
-            if not isinstance(handler, dict) or handler.get('type') != 'command' or handler.get('async', False):
+            if not isinstance(handler, dict) or handler.get('type') != 'command' or (handler.get('async', False) and not cls.allow_async):
                 raise DomainError(f'Initial {cls.event_name} proxy admits synchronous native commands only')
+            if cls.allow_async and type(handler.get('async', False)) is not bool:
+                raise DomainError(f'Original {cls.event_name} async must be boolean')
             timeout = handler.get('timeout')
             if type(timeout) not in (int, float) or not math.isfinite(timeout) or timeout <= 0:
                 raise DomainError(f'Original {cls.event_name} command requires a finite positive timeout')
             context = handler.get('additionalContextLimit', 0)
             if type(context) is not int or context < 0 or not isinstance(handler.get('command'), str) or not handler['command']:
                 raise DomainError(f'Original {cls.event_name} command/context contract is invalid')
+        contributors = [h for h in handlers if not h.get('async', False)]
         return {'timeout': math.ceil(sum(h['timeout'] + .25 for h in handlers) + 1),
-                'context': sum(h.get('additionalContextLimit', 0) for h in handlers) + len(handlers) - 1,
+                'context': sum(h.get('additionalContextLimit', 0) for h in contributors) + max(0, len(contributors) - 1),
                 'cleanup_seconds': .25, 'orchestration_seconds': 1}
 
     @classmethod
@@ -72,6 +78,7 @@ class InitialHookProjection:
         if not isinstance(source, str):
             raise DomainError(f'Native {cls.event_name} source must be text')
         return [(i, handler) for i, group in enumerate(groups)
-                if not group.get('matcher') or re.search(group['matcher'], source)
+                if not group.get('matcher') or (cls.wildcard_all and group['matcher'] == '*')
+                or re.search(group['matcher'], source)
                 for handler in group['hooks']]
 

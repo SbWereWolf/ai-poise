@@ -17,6 +17,15 @@ from .pre_tool_proxy_support import PreToolScene
 FIXTURES = Path(__file__).parent / 'fixtures' / 'post_tool_proxy'
 
 
+class PostToolProxyUnavailable(AssertionError):
+    """Only the exact absent public operation, never an environment failure."""
+
+
+def require_proxy_operation(code, body):
+    if code == 2 and body.get('reason') == 'Unknown runtime-config operation':
+        raise PostToolProxyUnavailable('POST_TOOL_PROXY_PUBLICATION_MISSING: post-tool-use-proxy')
+
+
 class PostToolScene(PreToolScene):
     def __init__(self, project, parent):
         super().__init__(project, parent)
@@ -77,6 +86,7 @@ class PostToolScene(PreToolScene):
         text = stdout.getvalue()
         envelope = json.loads(text) if text else {}
         body = json.loads(Path(envelope['response_path']).read_text()) if envelope else {}
+        require_proxy_operation(code, body)
         return code, body, stderr.getvalue()
 
     def publish(self, *, event='PostToolUse'):
@@ -167,6 +177,9 @@ def actual_output_case(project, parent, *, proxy, enforce=False):
         stdout, stderr = io.StringIO(), io.StringIO()
         code = execute('runtime-config', SimpleNamespace(settings=str(chain.service.settings.path)),
             io.BytesIO(json.dumps(packet).encode()), stdout, stderr)
+        envelope = json.loads(stdout.getvalue())
+        body = json.loads(Path(envelope['response_path']).read_text())
+        require_proxy_operation(code, body)
         assert code == 0, ('POST_TOOL_PROXY_PUBLICATION_MISSING', stdout.getvalue(), stderr.getvalue())
         groups = json.loads(chain.service.settings.hooks_file.read_text())['hooks']['PostToolUse']
         assert len(groups) == 1 and len(groups[0]['hooks']) == 1

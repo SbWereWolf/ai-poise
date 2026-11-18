@@ -25,6 +25,7 @@
     "tests/hook_transport/test_initial_post_tool_proxy.py::test_sync_protocol_or_launch_failure_still_runs_the_next_native_command[invalid-type]",
     "tests/hook_transport/test_initial_post_tool_proxy.py::test_sync_protocol_or_launch_failure_still_runs_the_next_native_command[timeout]",
     "tests/hook_transport/test_initial_post_tool_proxy.py::test_sync_protocol_or_launch_failure_still_runs_the_next_native_command[shell-127]",
+    "tests/hook_transport/test_initial_post_tool_proxy.py::test_sync_protocol_or_launch_failure_still_runs_the_next_native_command[spawn-exception]",
     "tests/hook_transport/test_initial_post_tool_proxy.py::test_real_native_post_guards_and_delivery_are_preserved[unbound]",
     "tests/hook_transport/test_initial_post_tool_proxy.py::test_real_native_post_guards_and_delivery_are_preserved[poise-bound]",
     "tests/hook_transport/test_initial_post_tool_proxy.py::test_real_native_post_guards_and_delivery_are_preserved[erp-bound]",
@@ -36,6 +37,7 @@
     "tests/hook_transport/test_initial_post_tool_proxy.py::test_real_native_tool_result_survives_proxy[audit]",
     "tests/hook_transport/test_initial_post_tool_proxy.py::test_real_native_tool_result_survives_proxy[enforce]",
     "tests/hook_transport/test_initial_post_tool_proxy.py::test_complete_captures_are_separate_per_session_and_cleanup_preserves_other_session",
-    "tests/hook_transport/test_initial_post_tool_proxy.py::test_same_file_reconfiguration_preserves_all_three_active_projections"
+    "tests/hook_transport/test_initial_post_tool_proxy.py::test_same_file_reconfiguration_preserves_all_three_active_projections",
+    "tests/hook_transport/test_initial_post_tool_proxy.py::test_invalid_native_object_is_refused_without_running_callbacks"
   ]
 }

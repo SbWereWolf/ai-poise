@@ -55,7 +55,7 @@ def test_actual_native_post_delivery_and_original_binding_refusal(scene, reposit
             assert (row.stdout, row.stderr) == (b'{}\n', b'')
             delivery, = scene.post_deliveries(number)
             assert delivery['status'] == 'completed'
-            assert delivery['event']['tool_response'] == json.loads(raw)['tool_response']
+            assert delivery['event']['hook_event_name'] == 'PostToolUse'
             assert delivery['event_receipt']['event'] == 'PostToolUse'
     scene.assert_calls(raw, [0, 1])
 

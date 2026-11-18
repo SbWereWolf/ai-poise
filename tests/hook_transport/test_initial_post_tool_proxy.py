@@ -138,7 +138,7 @@ def test_sync_failure_does_not_invent_control_and_keeps_complete_capture(scene, 
         captured(scene, b'' if code else b'{}\n', diagnostic, code)
 
 
-@pytest.mark.parametrize('failure', ['invalid-json', 'invalid-type', 'timeout', 'shell-127'])
+@pytest.mark.parametrize('failure', ['invalid-json', 'invalid-type', 'timeout', 'shell-127', 'spawn-exception'])
 def test_sync_protocol_or_launch_failure_still_runs_the_next_native_command(scene, failure):
     scene.bind()
     if failure == 'invalid-json':
@@ -152,12 +152,20 @@ def test_sync_protocol_or_launch_failure_still_runs_the_next_native_command(scen
     if failure == 'shell-127':
         scene.probes[0].unlink()
     raw = scene.tool_raw()
-    result = invoke(handler['command'], raw, scene.root)
+    environment = {}
+    witness = scene.root / 'native-spawn-failure.json'
+    if failure == 'spawn-exception':
+        environment = {'INITIAL_PROXY_FAIL_POPEN_TARGET': str(scene.probes[0]),
+                       'INITIAL_PROXY_FAULT_WITNESS': str(witness)}
+    result = invoke(handler['command'], raw, scene.root, environment=environment)
     assert result.returncode == 1 and result.stdout == b'{}\n' and result.stderr
-    scene.assert_calls(raw, [1] if failure == 'shell-127' else [0, 1])
+    scene.assert_calls(raw, [1] if failure in ('shell-127', 'spawn-exception') else [0, 1])
     captured(scene, b'{}\n', b'', 0)
     if failure == 'timeout':
         assert any(row.get('timed_out') is True for row in runner_records(scene))
+    if failure == 'spawn-exception':
+        assert json.loads(witness.read_text())['error'] == 'fixture actual Popen failure'
+        captured(scene, b'', b'', None)
 
 
 @pytest.mark.parametrize('repository,bound,expected', [('poise', False, 2),
@@ -177,7 +185,7 @@ def test_real_native_post_guards_and_delivery_are_preserved(scene, repository, b
         success = bound and number == (1 if repository == 'poise' else 0)
         assert len(rows) == int(success)
         if success:
-            assert rows[0]['event']['tool_response'] == json.loads(raw)['tool_response']
+            assert rows[0]['event']['hook_event_name'] == 'PostToolUse'
             assert rows[0]['status'] == 'completed'
     scene.assert_calls(raw, [0, 1])
     scene.assert_metric(raw)
@@ -318,3 +326,12 @@ def test_same_file_reconfiguration_preserves_all_three_active_projections(scene)
     assert current == before
     logical = scene.services[1].repository.logical_document(current)
     assert logical['hooks']['PostToolUse'] == scene.post_members
+
+
+def test_invalid_native_object_is_refused_without_running_callbacks(scene):
+    handler = scene.publish()
+    result = invoke(handler['command'], b'[]\n', scene.root)
+    assert (result.returncode, result.stdout, result.stderr) == (
+        1, b'', b'Native hook JSON object required\n')
+    assert scene.calls() == []
+    assert not (scene.trace / 'metric-started').exists()

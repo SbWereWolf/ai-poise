@@ -637,7 +637,8 @@ class FileHookRepository:
         for event, state in proxy_states.items():
             if state['active']:
                 path = snapshot_path(s, event)
-                field = {'SessionStart': 'proxy_file', 'PreToolUse': 'pre_tool_proxy_file'}[event]
+                field = {'SessionStart': 'proxy_file', 'PreToolUse': 'pre_tool_proxy_file',
+                         'PostToolUse': 'post_tool_proxy_file'}[event]
                 operation[field] = {'path': str(path), 'before': path.read_bytes().hex(), 'after': proxy_body(state).hex()}
         if proof is not None:operation['prior_installation']=prior_installation
         return operation
@@ -676,7 +677,8 @@ class FileHookRepository:
             from .session_start_proxy import snapshots
             proxy_states = snapshots(s)
             projections = []
-            for event, field in (('SessionStart', 'proxy_file'), ('PreToolUse', 'pre_tool_proxy_file')):
+            for event, field in (('SessionStart', 'proxy_file'), ('PreToolUse', 'pre_tool_proxy_file'),
+                                 ('PostToolUse', 'post_tool_proxy_file')):
                 projection = operation.get(field)
                 if projection is not None:
                     proxy_states[event] = json.loads(bytes.fromhex(projection['after']))

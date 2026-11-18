@@ -347,3 +347,73 @@ def test_invalid_native_object_is_refused_without_running_callbacks(scene):
 def test_distinct_project_task_stores_keep_post_capture_in_their_observed_assignment(project, tmp_path):
     from .post_tool_project_assignments import assignment_case
     assignment_case(project, tmp_path, proxy=True)
+
+
+@pytest.mark.parametrize('retirement', ['completed', 'exception', 'during-write'])
+def test_late_worker_write_preserves_retired_capture_absence(scene, monkeypatch, retirement):
+    """Real storage owners; only external callback execution is substituted."""
+    from poise.infrastructure import post_tool_use_proxy as worker
+    from poise.infrastructure.session_establishment import remove_session_runtime
+
+    runtime = scene.bind(session='late-retired')
+    other = scene.bind(session='late-preserved')
+    other.mkdir(parents=True, exist_ok=True)
+    marker = other / 'independent-session-marker'
+    marker.write_bytes(b'preserve this other session')
+    projection = runtime / 'initial-post-tool-use-proxy'
+    invocation = projection / 'literal-invocation'
+    directory = invocation / '0'
+    directory.mkdir(parents=True)
+    raw = b'{"literal":"admitted original input"}\n'
+    source = invocation / 'input.json'
+    source.write_bytes(raw)
+    settings = scene.services[1].settings
+    job = {'schema': 'initial-native-callback-1', 'invocation_id': 'literal-worker',
+           'settings_path': str(settings.path),
+           'owner_project_config': str(settings.project_config),
+           'session_id': 'late-retired',
+           'assigned_session_id': scene.bindings['late-retired']['session_id'],
+           'input_path': str(source), 'position': 0,
+           'handler': {'command': 'fixture callback execution is substituted', 'timeout': 30},
+           'cleanup_seconds': .25, 'status': 'launching', 'launched': False,
+           'execution': None}
+    path = directory / 'result.json'
+    worker.save_member(settings, path, job)
+    events = []
+
+    def retire():
+        remove_session_runtime(projection)
+        assert not projection.exists()
+        assert marker.read_bytes() == b'preserve this other session'
+        events.append('retired')
+
+    def callback(_settings, position, handler, input_path, output_directory, cleanup, **kwargs):
+        assert input_path.read_bytes() == raw and output_directory == directory
+        assert position == 0 and handler == job['handler'] and cleanup == .25
+        assert kwargs['parse_response'] is False
+        events.append('callback')
+        if retirement != 'during-write':
+            retire()
+        if retirement == 'exception':
+            raise OSError('literal callback capture exception after retirement')
+        return {'execution': {'actual_exit_code': 0, 'capture_complete': True}}, {'failed': False}
+
+    monkeypatch.setattr(worker, 'capture_native_callback', callback)
+    if retirement == 'during-write':
+        real_replace = os.replace
+
+        def replace_after_retirement(*args, **kwargs):
+            if 'retired' not in events:
+                # The actual atomic writer has prepared its temporary file.
+                # Retirement wins before publication; no timing/sleep oracle.
+                retire()
+            return real_replace(*args, **kwargs)
+
+        monkeypatch.setattr(os, 'replace', replace_after_retirement)
+    read_fd, write_fd = os.pipe()
+    os.close(read_fd)
+    # run owns/closes write_fd, including its actual exception-save branch.
+    worker.run(str(settings.path), str(path), write_fd)
+    assert events == ['callback', 'retired']
+    assert not projection.exists(), 'late worker recreated retired capture subtree'
+    assert marker.read_bytes() == b'preserve this other session'

@@ -43,5 +43,10 @@
     "tests/hook_transport/test_initial_post_tool_proxy.py::test_same_file_reconfiguration_preserves_all_three_active_projections",
     "tests/hook_transport/test_initial_post_tool_proxy.py::test_invalid_native_object_is_refused_without_running_callbacks",
     "tests/hook_transport/test_initial_post_tool_proxy.py::test_distinct_project_task_stores_keep_post_capture_in_their_observed_assignment"
+  ],
+  "storage": [
+    "tests/hook_transport/test_initial_post_tool_proxy.py::test_late_worker_write_preserves_retired_capture_absence[completed]",
+    "tests/hook_transport/test_initial_post_tool_proxy.py::test_late_worker_write_preserves_retired_capture_absence[exception]",
+    "tests/hook_transport/test_initial_post_tool_proxy.py::test_late_worker_write_preserves_retired_capture_absence[during-write]"
   ]
 }

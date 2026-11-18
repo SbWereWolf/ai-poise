@@ -1,0 +1,8 @@
+{
+  "operation": "command",
+  "input": {
+    "name": "0100-taskless",
+    "sql": "INSERT INTO requirements(id,level,status,text) VALUES('SYS-TASKLESS','system','current','Taskless system'); INSERT INTO requirements(id,level,status,text) VALUES('APP-TASKLESS','application','current','Taskless application'); INSERT INTO requirement_links(system_id,application_id) VALUES('SYS-TASKLESS','APP-TASKLESS'); UPDATE requirements_meta SET revision=revision+1",
+    "rollback_sql": "UPDATE requirements_meta SET revision=revision-1; DELETE FROM requirement_links WHERE system_id='SYS-TASKLESS' AND application_id='APP-TASKLESS'; DELETE FROM requirements WHERE id='APP-TASKLESS'; DELETE FROM requirements WHERE id='SYS-TASKLESS'"
+  }
+}

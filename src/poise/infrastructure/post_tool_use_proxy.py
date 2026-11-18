@@ -16,7 +16,11 @@ from .session_establishment import project_session_runtime_path
 
 
 def save_member(settings, path, record):
-    atomic_write(path, body(record), settings.raw['file_mode'])
+    try:
+        atomic_write(path, body(record), settings.raw['file_mode'], create_parent=False)
+    except FileNotFoundError:
+        # Session retirement owns removal; a late write must not recreate it.
+        pass
 
 
 class PostToolUseMemberExecutor(SessionStartMemberExecutor):

@@ -346,6 +346,20 @@ class EvidenceBook:
                 return b
         return None
 
+    def retry_batch(self, mapping):
+        scope = (mapping['stage'], mapping['iteration'], mapping['submission_digest'],
+                 mapping['verified_tree'], mapping['execution_key'])
+        for item in reversed(self.batches):
+            batch = json.loads(item)
+            if (batch['stage'], batch['iteration'], batch.get('submission_digest'),
+                    batch['tree'], batch['execution_key']) != scope:
+                continue
+            receipts = batch['receipts']
+            if ([r['id'] for r in receipts] == mapping['runs']
+                    and all(r.get('attempt_id') == mapping['attempt_id'] for r in receipts)):
+                return batch
+        return None
+
     def failed_batch(self, stage, iteration, submission_digest, tree, key):
         for item in reversed(self.batches):
             try:

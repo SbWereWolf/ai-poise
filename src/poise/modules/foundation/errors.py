@@ -6,6 +6,10 @@ class DomainError(PoiseError):
     """Отклонённая операция предметной модели; не обязательно баг Poise."""
 
 
+class TaskActionIntentConflict(PoiseError):
+    """A Task action request ID already belongs to a different intent."""
+
+
 class VersionConflict(PoiseError):
     """Сохранение не может перезаписать более новую версию."""
 

@@ -13,7 +13,9 @@ from .common import PoiseError, descendant, configured_root, configured_storage_
 from .storage import Store
 from .composition import task_tools
 from .application.runner import StageRunner
-from .application.check_attempts import is_check_attempt, receipt_matches, require_identity, require_quiescence
+from .application.check_attempts import (
+    is_check_attempt, pending_retry, receipt_matches, require_identity, require_quiescence, retry_continuation,
+)
 from .application.evidence import EvidenceCommands, check_receipts_by_id
 from .modules.content_requirements.domain import ArtifactFact
 from .modules.evidence.domain import completed_receipts
@@ -1577,15 +1579,18 @@ class Poise:
                 'content_gate':gate,'checks':receipts,'replayed':False,
                 'context':self._context(data,True)}
 
-    def verify(self, payload: dict | None, *, packet_digest: str | None, selection_guard: dict | None = None) -> dict:
+    def verify(self, payload: dict | None, *, packet_digest: str | None, selection_guard: dict | None = None,
+               verification_retry: dict | None = None) -> dict:
         try:
-            result=self._verify(payload, packet_digest=packet_digest, selection_guard=selection_guard)
+            options = {} if verification_retry is None else {'verification_retry': verification_retry}
+            result=self._verify(payload, packet_digest=packet_digest, selection_guard=selection_guard, **options)
         finally:
             incidents=self.result_views.finish()
         if incidents:result={**result,'incidents':incidents}
         return result
 
-    def _verify(self, payload: dict | None, *, packet_digest: str | None, selection_guard: dict | None = None) -> dict:
+    def _verify(self, payload: dict | None, *, packet_digest: str | None, selection_guard: dict | None = None,
+                verification_retry: dict | None = None) -> dict:
         data = self.store.current(self.session)
         if data is None:
             self.store.event(self.session,None,'read_only.finalize',{})
@@ -1606,6 +1611,19 @@ class Poise:
             raise PoiseError('В worktree другая ветка')
         pending_checks = data['pending'] == 'checks'
         pending_attempt = is_check_attempt(data['pending'])
+        retry_descriptor = pending_retry(data['pending'])
+        if retry_descriptor is not None and verification_retry is None:
+            raise PoiseError(retry_continuation(retry_descriptor))
+        if verification_retry is not None:
+            mapping = verification_retry['mapping']
+            if (data['status'] != 'active' or stage['id'] != mapping['stage']
+                    or data['iteration'] != mapping['iteration']
+                    or (data['pending'] is not None and (
+                        retry_descriptor is None or retry_descriptor['intent'] != verification_retry['intent']
+                        or data['pending']['attempt_id'] != mapping['attempt_id']
+                        or digest(retry_descriptor['budgets']) != mapping['budget_digest']))
+                    or (data['pending'] is None and 'batch' not in verification_retry)):
+                raise PoiseError('Verification retry reservation or candidate changed')
         if data['pending'] is not None and not (pending_checks or pending_attempt):
             raise PoiseError('Неизвестен исход прерванной проверки; не запускаем повтор вслепую. Смотрите журнал.')
         tree = self._current_tree(data)
@@ -1663,7 +1681,7 @@ class Poise:
         self.validate_proof_result(data, payload, tree)
         for method in self._select_checks(data, changed):
             self.retention.bind_inputs(data, method)
-        if pending_checks or pending_attempt:
+        if pending_checks or pending_attempt or verification_retry is not None:
             submitted_digest = self.runner.matching_submission_digest(
                 data['id'], self.session, payload
             )
@@ -1696,7 +1714,13 @@ class Poise:
             changed = scope_state['changed']
             self.plan_actions.commands.record_assessment(data['id'],self.session,tree,action)
             data=self._task()
-        commit = self._prepare_verification_commit(data, tree, changed, payload['commit_message'])
+        if verification_retry is None:
+            commit = self._prepare_verification_commit(data, tree, changed, payload['commit_message'])
+        else:
+            commit = mapping['commit']
+            if tree != mapping['verified_tree']:
+                raise PoiseError('Verification retry source tree changed')
+            self._require_verification_identity(data, commit, tree)
         checks = self._select_checks(data, changed)
         invocations, execution_key = self._verification_execution(
             data, tree, checks, worktree
@@ -1705,11 +1729,27 @@ class Poise:
         current_submission_digest = (
             submitted_digest if submitted is None else submitted.digest
         )
+        if verification_retry is not None and (current_submission_digest != mapping['submission_digest']
+                                                or execution_key != mapping['execution_key']):
+            raise PoiseError('Verification retry submission or invocation identity changed')
         if pending_attempt:
             data['pending'] = self.runner.current_check_attempt(
                 data['id'], self.session, tree, execution_key, [m['id'] for m in checks]
             )
-        if pending_checks:
+            current_retry = pending_retry(data['pending'])
+            if current_retry is not None and verification_retry is None:
+                raise PoiseError(retry_continuation(current_retry))
+            if verification_retry is not None and (
+                    current_retry is None or current_retry['intent'] != verification_retry['intent']
+                    or data['pending']['attempt_id'] != mapping['attempt_id']
+                    or digest(current_retry['budgets']) != mapping['budget_digest']):
+                raise PoiseError('Verification retry reservation changed before execution')
+        if verification_retry is not None and not pending_attempt:
+            batch = verification_retry['batch']
+            latest = self.task_commands.observation_batch(data['id'], tree, execution_key)
+            if latest is None or latest['id'] != batch['id']:
+                raise PoiseError('Verification retry was superseded before publication')
+        elif pending_checks:
             batch = self.task_commands.submission_observation_batch(
                 data['id'],current_submission_digest,tree,execution_key
             )
@@ -1749,12 +1789,17 @@ class Poise:
             return self._publish(data, publication, packet_digest=packet_digest, selection_guard=selection_guard)
         if intact:
             receipts = batch['receipts']
-            attempt = data['attempts']
-            self.runner.record_observations(
-                data['id'], self.session, tree, execution_key, receipts
-            )
-            data = self._task()
+            if verification_retry is None:
+                attempt = data['attempts']
+                self.runner.record_observations(
+                    data['id'], self.session, tree, execution_key, receipts
+                )
+                data = self._task()
+            else:
+                attempt = mapping['attempt']
         else:
+            if verification_retry is not None and not pending_attempt:
+                raise PoiseError('Unknown check outcome: completed retry receipts changed')
             if not pending_attempt:
                 self.runner.begin_check_attempt(
                     data['id'], self.session, tree, execution_key,
@@ -1763,7 +1808,7 @@ class Poise:
                     self._attempt_identity(tree, invocations)
                 )
                 data = self._task()
-            attempt = data['attempts']
+            attempt = data['attempts'] if verification_retry is None else mapping['attempt']
             self.store.event(self.session,data['id'],'verify.start',{'stage':stage['id'],'tree':tree,'attempt':attempt,'methods':[m['id'] for m in checks]})
             try:
                 receipts = self._execute_checks(data,stage,tree,checks,invocations,roots)
@@ -2014,9 +2059,10 @@ class Poise:
     def _execute_checks(self, data, stage, tree, checks, invocations, roots):
         receipts=[]
         attempt = data['pending']
+        retry = pending_retry(attempt)
         recorded = self._recorded_check_receipts(data['id'])
         # Inspect the whole finished prefix before permitting any new tail effect.
-        for run, invocation in zip(attempt['runs'], invocations, strict=True):
+        for index, (run, invocation) in enumerate(zip(attempt['runs'], invocations, strict=True)):
             receipt = recorded.get(run['run_id'])
             if run['started']:
                 if (not receipt_matches(attempt, run, receipt)
@@ -2027,6 +2073,12 @@ class Poise:
                         'to archive this uncertain attempt after stopping/inspecting its effects; '
                         'do not retry blindly'
                     )
+                if retry is not None:
+                    budget = retry['budgets'][index]
+                    if (receipt['timeout_profile'] != budget['profile']
+                            or receipt['timeout_selection'] != budget['selection']
+                            or receipt['cleanup_seconds'] != budget['cleanup_seconds']):
+                        raise PoiseError('Unknown check outcome: retry receipt timing differs')
             elif receipt is not None:
                 raise PoiseError('Unexpected receipt for a check run without start permission')
         for index, (method,invocation) in enumerate(zip(checks,invocations,strict=True)):
@@ -2044,14 +2096,22 @@ class Poise:
                 'POISE_RUN_OUTPUT_DIR': str(declared_output_dir),
             }
             profile=timeout_profile(method['argv'],method['id'],run_environment)
-            history=self.evidence_commands.timeout_history(profile)
-            timeout_selection=self.check_timeout_policy.select(
-                history['durations'],None,history['evidence_ids']
-            )
+            cleanup = {}
+            if retry is None:
+                history=self.evidence_commands.timeout_history(profile)
+                evidence_ids = history['evidence_ids']
+                timeout_selection=self.check_timeout_policy.select(history['durations'],None,evidence_ids)
+            else:
+                budget = retry['budgets'][index]
+                if profile != budget['profile']:
+                    raise PoiseError('Frozen verification retry timeout profile changed')
+                timeout_selection = budget['selection']
+                evidence_ids = budget['evidence_ids']
+                cleanup['cleanup_seconds'] = budget['cleanup_seconds']
             timeout_snapshot={
                 'profile':profile,
                 'selection':timeout_selection,
-                'history_evidence_ids':history['evidence_ids'],
+                'history_evidence_ids':evidence_ids,
             }
             timeout_snapshot_path=run_dir/'timeout-policy.json'
             timeout_snapshot_path.write_text(
@@ -2067,6 +2127,7 @@ class Poise:
                 descendant(run_dir,self.paths['stdout']), descendant(run_dir,self.paths['stderr']),
                 progress_gap_seconds=timeout_selection['progress_gap_seconds'],
                 poll_seconds=timeout_selection['poll_seconds'],
+                **cleanup,
             )
             attempt = self.runner.record_check_termination(
                 data['id'], self.session, attempt, run_id, result)

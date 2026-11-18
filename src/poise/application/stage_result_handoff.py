@@ -6,6 +6,7 @@ from ..modules.foundation.errors import PoiseError, VersionConflict
 from ..modules.tasks.handoff import StageHandoffState, normal_progression
 from ..modules.tasks.handoff_ports import HandoffEffects
 from ..modules.tasks.ports import TaskReadSet
+from .check_attempts import PendingVerificationRetry, pending_retry, retry_continuation
 
 
 class StageResultHandoffCommands:
@@ -70,7 +71,10 @@ class StageResultHandoffCommands:
         continuation = f'Повторите точный handoff request_id={request} task_id={task}.'
         reason = str(error) if error is not None else ''
         pending = self.effects.pending(task)
-        if isinstance(pending, dict) and pending.get('kind') == 'check_attempt':
+        retry = pending_retry(pending)
+        if retry is not None:
+            continuation = retry_continuation(retry)
+        elif isinstance(pending, dict) and pending.get('kind') == 'check_attempt':
             runs = ', '.join(run['run_id'] for run in pending['runs'] if run['started'])
             continuation = (
                 f'show kind=work_overview: контекст attempt={pending["attempt_id"]} run={runs}. '
@@ -161,7 +165,13 @@ class StageResultHandoffCommands:
             if state.completed:
                 return state.project(phase='complete', replayed=True)
         else:
-            state, prepared = self._admit(args, intent_digest)
+            try:
+                state, prepared = self._admit(args, intent_digest)
+            except PendingVerificationRetry as error:
+                return {'status': 'handoff_blocked', 'task': args['task_id'],
+                        'request_id': args['request_id'], 'phase': 'verification',
+                        'verification': None, 'progression': None, 'release': None, 'replayed': False,
+                        'blocked': {'reason': 'A verification retry is pending', 'continuation': str(error)}}
         phase = 'verification'
         try:
             if state.needs_verification:

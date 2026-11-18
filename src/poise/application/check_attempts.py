@@ -1,9 +1,11 @@
 """Short durable boundaries around external checks; never execute or retry effects."""
 from copy import deepcopy
 from dataclasses import replace
+from math import isfinite
 from uuid import UUID, uuid4
+from ..common import digest
 
-from ..modules.foundation.errors import DomainError
+from ..modules.foundation.errors import DomainError, PoiseError
 from ..modules.tasks.domain import TaskStatus
 from ..modules.tasks.ports import TaskReadSet
 from .evidence import check_receipts_by_id
@@ -11,6 +13,41 @@ from .evidence import check_receipts_by_id
 
 def is_check_attempt(value):
     return isinstance(value, dict) and value.get('kind') == 'check_attempt'
+
+
+def pending_retry(value):
+    if is_check_attempt(value) and value.get('version') == 3:
+        descriptor = value.get('retry')
+        if not isinstance(descriptor, dict) or not isinstance(descriptor.get('request_id'), str):
+            raise DomainError('Invalid pending verification retry descriptor')
+        return descriptor
+    return None
+
+
+def retry_continuation(retry):
+    return (f"Pending verification retry request_id={retry['request_id']}; "
+            'resume with exact explicit verify retry, original result, failed_check_id and reason')
+
+
+class PendingVerificationRetry(PoiseError):
+    """Ordinary verification cannot resume an explicit retry reservation."""
+
+
+def validate_retry_budget(budget, method_id):
+    fields = {'method', 'prior_receipt', 'profile', 'selection', 'evidence_ids', 'cleanup_seconds'}
+    if (not isinstance(budget, dict) or set(budget) != fields or budget['method'] != method_id
+            or not isinstance(budget['prior_receipt'], str) or not budget['prior_receipt']
+            or not isinstance(budget['profile'], dict) or budget['profile'].get('workload') != method_id
+            or not isinstance(budget['selection'], dict) or not isinstance(budget['evidence_ids'], list)
+            or not all(isinstance(item, str) for item in budget['evidence_ids'])):
+        raise DomainError('Invalid frozen verification retry budget')
+    for name, value in [('cleanup_seconds', budget['cleanup_seconds']), *(
+            (name, budget['selection'].get(name)) for name in ('seconds', 'progress_gap_seconds', 'poll_seconds'))]:
+        if name == 'progress_gap_seconds' and value is None and name in budget['selection']:
+            continue
+        if type(value) not in (int, float) or not isfinite(value) or value <= 0:
+            raise DomainError(f'Invalid frozen verification retry bound: {name}')
+    return budget
 
 
 def validate_identity(identity):
@@ -24,7 +61,7 @@ def validate_identity(identity):
 
 def require_identity(attempt, identity):
     """Component facts, never environment values, explain a changed invocation."""
-    if attempt.get('version') != 2:
+    if attempt.get('version') not in (2, 3):
         return  # v1 has no component facts; its exact original key remains required.
     original = validate_identity(attempt.get('identity'))
     current = validate_identity(identity)
@@ -56,7 +93,7 @@ def validate_termination(attempt, run):
 
 def require_quiescence(attempt):
     """A caller assertion and an empty fresh runner map cannot establish stop."""
-    if attempt['version'] != 2:
+    if attempt['version'] not in (2, 3):
         raise DomainError('Historical protocol has no authoritative termination proof')
     for run in attempt['runs']:
         validate_termination(attempt, run)
@@ -101,15 +138,16 @@ def validate_attempt(task, actor, attempt, tree, execution_key, methods=None):
     if (task.state.status != TaskStatus.ACTIVE or task.check_candidate_digest is None
             or not isinstance(attempt, dict)
             or type(attempt.get('version')) is not int
-            or attempt.get('version') not in (1, 2)
+            or attempt.get('version') not in (1, 2, 3)
             or set(attempt) != set(expected) | {'version', 'attempt_id', 'runs'} |
-                ({'identity'} if attempt.get('version') == 2 else set())
+                ({'identity'} if attempt.get('version') in (2, 3) else set()) |
+                ({'retry'} if attempt.get('version') == 3 else set())
             or any(attempt.get(key) != value for key, value in expected.items())):
         raise DomainError('Check attempt context changed or protocol is unsupported; drift cause undetermined')
     if (type(attempt['iteration']) is not int or attempt['iteration'] < 1
             or type(attempt['task_version']) is not int or attempt['task_version'] < 0):
         raise DomainError('Invalid check attempt iteration identity')
-    if attempt['version'] == 2:
+    if attempt['version'] in (2, 3):
         validate_identity(attempt['identity'])
     try:
         UUID(attempt['attempt_id'])
@@ -118,7 +156,7 @@ def validate_attempt(task, actor, attempt, tree, execution_key, methods=None):
             raise ValueError('runs')
         unstarted = False
         for run in runs:
-            fields = {'run_id', 'method_id', 'started'} | ({'termination'} if attempt['version'] == 2 else set())
+            fields = {'run_id', 'method_id', 'started'} | ({'termination'} if attempt['version'] in (2, 3) else set())
             if (not isinstance(run, dict) or set(run) != fields
                     or type(run['started']) is not bool
                     or not isinstance(run['method_id'], str) or not run['method_id']):
@@ -127,7 +165,7 @@ def validate_attempt(task, actor, attempt, tree, execution_key, methods=None):
             if unstarted and run['started']:
                 raise ValueError('nonsequential start permissions')
             unstarted = unstarted or not run['started']
-            if attempt['version'] == 2:
+            if attempt['version'] in (2, 3):
                 validate_termination(attempt, run)
         if len({run['run_id'] for run in runs}) != len(runs):
             raise ValueError('duplicate run identity')
@@ -135,6 +173,14 @@ def validate_attempt(task, actor, attempt, tree, execution_key, methods=None):
             raise ValueError('method order')
     except (ValueError, TypeError, KeyError, AttributeError) as exc:
         raise DomainError('Invalid check attempt run identities or order') from exc
+    retry = pending_retry(attempt)
+    if retry is not None:
+        if (set(retry) != {'request_id', 'intent', 'budgets'} or not retry['request_id']
+                or not isinstance(retry['intent'], str) or len(retry['intent']) != 64
+                or not isinstance(retry['budgets'], list) or len(retry['budgets']) != len(runs)):
+            raise DomainError('Invalid verification retry reservation')
+        for run, budget in zip(runs, retry['budgets'], strict=True):
+            validate_retry_budget(budget, run['method_id'])
     return attempt
 
 
@@ -157,7 +203,8 @@ class CheckAttempts:
             uow.require_inputs(inputs)
             uow.execution.save_prepared(task_id, prepared, version)
 
-    def begin(self, task_id, actor, tree, execution_key, methods, limit, expected_version, submission_digest, identity):
+    def begin(self, task_id, actor, tree, execution_key, methods, limit, expected_version, submission_digest, identity,
+              *, retry=None):
         validate_identity(identity)
         facade = self.unit_of_work()
         inputs = facade.capture(TaskReadSet((task_id,), execution_ids=(task_id,)))
@@ -180,11 +227,34 @@ class CheckAttempts:
             'runs': [{'run_id': str(uuid4()), 'method_id': method, 'started': False, 'termination': None}
                      for method in methods],
         }
+        if retry is not None:
+            previous = task.evidence_book.failed_batch(
+                task.stage.stage_id, task.state.iteration, submission_digest, tree, execution_key)
+            if previous is None or previous['id'] != retry['predecessor']:
+                raise DomainError('Current failed verification batch changed before reservation')
+            attempt.update(version=3, retry={key: retry[key] for key in ('request_id', 'intent', 'budgets')})
         validate_attempt(task, actor, attempt, tree, execution_key, methods)
-        self._save_execution(facade, inputs, task_id, {
+        state = {
             **execution, 'pending': attempt, 'publication': None,
             'attempts': execution['attempts'] + 1,
-        }, version)
+        }
+        if retry is None:
+            self._save_execution(facade, inputs, task_id, state, version)
+        else:
+            mapping = {key: attempt[key] for key in ('actor', 'stage', 'iteration', 'submission_digest',
+                                                     'verified_tree', 'execution_key', 'attempt_id')}
+            mapping.update(attempt=state['attempts'], runs=[
+                run['run_id'] for run in attempt['runs']
+            ], predecessor=retry['predecessor'], commit=retry['commit'], packet=retry['packet'],
+                budget_digest=digest(retry['budgets']))
+            record = facade.prepare_action_receipt(retry['request_id'], retry['intent'], mapping)
+            prepared = facade.prepare_execution(inputs, task_id, state)
+            with self.unit_of_work() as uow:
+                if uow.tasks.action_receipt_raw(task_id, retry['request_id'], retry['intent']) is not None:
+                    raise DomainError('Retry request already reserved; submit the exact request again')
+                uow.require_inputs(inputs)
+                uow.execution.save_prepared(task_id, prepared, version)
+                uow.tasks.remember_prepared_action(task_id, actor, record)
         return deepcopy(attempt)
 
     def current(self, task_id, actor, tree, execution_key, methods):
@@ -205,7 +275,7 @@ class CheckAttempts:
                                    expected['verified_tree'], expected['execution_key'])
         if current != expected:
             raise DomainError('Check attempt changed before run permission')
-        if current['version'] != 2:
+        if current['version'] not in (2, 3):
             raise DomainError('Historical check protocol grants no new run permission')
         records = check_receipts_by_id(inputs.evidence(task_id))
         for run in current['runs']:
@@ -226,7 +296,7 @@ class CheckAttempts:
         execution, version = inputs.required_execution(task_id)
         current = validate_attempt(task, actor, execution['pending'],
                                    expected['verified_tree'], expected['execution_key'])
-        if current['version'] != 2:
+        if current['version'] not in (2, 3):
             raise DomainError('Check attempt changed before termination proof')
         terminal = outcome.get('termination')
         if (not isinstance(terminal, dict)

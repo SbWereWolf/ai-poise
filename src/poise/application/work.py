@@ -89,6 +89,11 @@ class WorkTools:
 
     def _verify(self,args):
         if 'selection' in args:
+            from .check_attempts import pending_retry, retry_continuation
+            data = self.runtime.current_task()
+            retry = pending_retry(data['pending']) if data and 'pending' in data else None
+            if retry is not None:
+                raise PoiseError(retry_continuation(retry))
             from .result_selection import SelectedResultSubmission
             return SelectedResultSubmission(self).submit(args)
         return self.runtime.stage_verification.verify(args)

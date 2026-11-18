@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from ..modules.foundation.errors import PoiseError
+from .check_attempts import PendingVerificationRetry, pending_retry, retry_continuation
 
 
 @dataclass(frozen=True)
@@ -22,6 +23,9 @@ class StageResultVerification:
     def prepare(self, args):
         h = self.runtime
         data = h.current_task()
+        retry = pending_retry(data.get('pending')) if data else None
+        if retry is not None:
+            raise PendingVerificationRetry(retry_continuation(retry))
         packet_digest = h.packet_digest(args)
         if data is None:
             if args['result'] is not None or args['artifacts']:
@@ -62,4 +66,7 @@ class StageResultVerification:
         return self.runtime.verify(prepared.payload, packet_digest=prepared.packet_digest)
 
     def verify(self, args):
+        if 'retry' in args:
+            from .verification_retry import VerificationRetry
+            return VerificationRetry(self.runtime).verify(args)
         return self.execute(self.prepare(args))

@@ -1854,6 +1854,19 @@ class TaskCommands:
         task=inputs.task(task_id)
         return task.evidence_book.batch(task.stage.stage_id,task.state.iteration,tree,execution_key)
 
+    def verification_retry_mapping(self, task_id, request_id, intent):
+        from ..modules.foundation.errors import TaskActionIntentConflict
+        try:
+            with self.unit_of_work() as uow:
+                receipt = uow.tasks.action_receipt_raw(task_id, request_id, intent)
+        except TaskActionIntentConflict as exc:
+            raise DomainError('Request ID already used with a different verification retry intent') from exc
+        return None if receipt is None else receipt.result()
+
+    def verification_retry_batch(self, task_id, mapping):
+        inputs = self.unit_of_work().capture(TaskReadSet((task_id,)))
+        return inputs.task(task_id).evidence_book.retry_batch(mapping)
+
     def submission_observation_batch(
         self, task_id, submission_digest, tree, execution_key
     ):
@@ -1885,8 +1898,10 @@ class TaskCommands:
             if attempt:
                 uow.execution.save_prepared(task_id, execution_write, version)
 
-    def begin_check_attempt(self, task_id, actor, tree, execution_key, methods, limit, expected_version, submission_digest, identity):
-        return CheckAttempts(self.unit_of_work).begin(task_id, actor, tree, execution_key, methods, limit, expected_version, submission_digest, identity)
+    def begin_check_attempt(self, task_id, actor, tree, execution_key, methods, limit, expected_version, submission_digest, identity,
+                            *, retry=None):
+        return CheckAttempts(self.unit_of_work).begin(task_id, actor, tree, execution_key, methods, limit,
+                                                     expected_version, submission_digest, identity, retry=retry)
 
     def current_check_attempt(self, task_id, actor, tree, execution_key, methods):
         return CheckAttempts(self.unit_of_work).current(task_id, actor, tree, execution_key, methods)

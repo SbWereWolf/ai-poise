@@ -1,7 +1,7 @@
 """Selected action receipt identity and detached response decoding."""
 from dataclasses import dataclass
 import json
-from ...modules.foundation.errors import PoiseError
+from ...modules.foundation.errors import TaskActionIntentConflict
 
 
 @dataclass(frozen=True)
@@ -19,5 +19,5 @@ def capture_action_receipt(db, task_id, request_id, digest):
     if row is None:
         return None
     if row['digest'] != digest:
-        raise PoiseError('Request ID already used with another Task action intent')
+        raise TaskActionIntentConflict('Request ID already used with another Task action intent')
     return TaskActionReceipt(row['data'])

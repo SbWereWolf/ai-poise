@@ -92,6 +92,16 @@ def parse_request(value, config):
             raise SelectionRefusal('selection_contract_invalid', 'verify selection cannot be combined with other input fields')
         selection_intent = SelectedResultIntent.parse(value['input']['selection'])
         shapes[op] = {'selection'}
+    if op == 'verify' and isinstance(value['input'], dict) and 'retry' in value['input'] and not selected:
+        retry = value['input']['retry']
+        fields = {'request_id', 'failed_check_id', 'reason'}
+        exact(retry, fields, 'verify retry')
+        if any(not isinstance(retry[field], str) or not retry[field].strip()
+               or '\0' in retry[field] for field in fields):
+            raise DomainError('verify retry requires nonempty request_id, failed_check_id and reason')
+        if value['input'].get('artifacts') != [] or not isinstance(value['input'].get('result'), dict):
+            raise DomainError('verify retry requires the exact submitted result and no new artifacts')
+        shapes[op] = {'result', 'artifacts', 'retry'}
 
     def collection_error(detail):
         if selection_intent is None:

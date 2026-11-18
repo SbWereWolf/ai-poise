@@ -35,7 +35,7 @@ def verify(tools, payload, retry=None):
     return tools.invoke(request("verify", args))
 
 
-def setup_failed_candidate(project, limit=3):
+def setup_failed_candidate(project, limit=3, interrupt=None):
     counter = configure(project, mode="same_role")
     state = project["root"] / "external-verification-state.txt"
     state.write_text("ready\n", encoding="utf-8")
@@ -99,6 +99,26 @@ def setup_failed_candidate(project, limit=3):
     source = (git(workspace, "rev-parse", "HEAD"), git(workspace, "rev-parse", "HEAD^{tree}"))
     payload = result(context, "Verify the proposed correction before independent inspection.")
     state.write_text("blocked\n", encoding="utf-8")
+    if interrupt is not None:
+        def lose_receipt(*args, **kwargs):
+            raise OSError("fixture terminal receipt persistence unavailable")
+
+        owner = author.runtime.evidence_commands
+        with interrupt.context() as patch:
+            patch.setattr(owner, "record_receipt", lose_receipt)
+            with pytest.raises(OSError, match="fixture terminal receipt persistence unavailable"):
+                verify(author, payload)
+        pending = author.runtime.current_task()["pending"]
+        assert pending["kind"] == "check_attempt"
+        [run] = pending["runs"]
+        assert run["started"] is True
+        assert counter.read_text() == "blocked\n"
+        retry = {
+            "request_id": "fixture-unknown-retry",
+            "failed_check_id": run["run_id"],
+            "reason": "External data recovered while prior receipt was unavailable.",
+        }
+        return author, reviewer, payload, retry, state, counter, workspace, source, None
     failed = verify(author, payload)
     assert failed["status"] == "checks_failed"
     [check] = failed["checks"]
@@ -122,35 +142,67 @@ def repeat(author, payload, retry):
         pytest.fail(f"Explicit verification retry did not admit the recovered fixture: {error}", pytrace=False)
 
 
+def task_state(author):
+    view = author.invoke(request("show", {"queries": [{"id": "task", "kind": "task"}]}))
+    data = view["results"][0]["value"]
+    owner = author.runtime.current_task()
+    return {
+        **{key: data[key] for key in ("status", "stage", "iteration", "attempts", "submission_count",
+                                     "evidence_count", "history")},
+        "feedback": data["workflow"]["feedback"],
+        "owner": owner["claimed_by"],
+        "pending": deepcopy(owner["pending"]),
+    }
+
+
+def assert_new_attempt(previous, current):
+    assert current["id"] != previous["id"]
+    assert current["attempt_id"] != previous["attempt_id"]
+    for field in ("submission_digest", "stage", "iteration", "method", "guard", "argv", "cwd",
+                  "expected_exit_code", "expectation_digest", "provenance_digest", "timeout_profile"):
+        assert current[field] == previous[field], field
+    for field in ("seconds", "progress_gap_seconds", "poll_seconds"):
+        assert current["timeout_selection"][field] == previous["timeout_selection"][field], field
+
+
+def assert_retained_failure(author, check):
+    view = author.invoke(request("show", {"queries": [{
+        "id": "prior-failure", "kind": "tool_result", "receipt_id": check["id"],
+        "representation": "full", "range": None,
+    }]}))
+    assert "fixture: external data unavailable" in view["results"][0]["value"]["text"]
+    assert check["actual_exit_code"] == 23
+    assert Path(check["stderr"]).read_text() == "fixture: external data unavailable\n"
+
+
 def test_recovered_external_data_is_checked_again_before_independent_handoff(project):
     author, reviewer, payload, retry, state, counter, workspace, source, failed = setup_failed_candidate(project)
     state.write_text("ready\n", encoding="utf-8")
     assert verify(author, payload)["checks"] == failed["checks"]
     assert counter.read_text() == "blocked\n"
 
+    before = task_state(author)
     fresh = repeat(author, payload, retry)
     assert fresh["status"] == "verified"
     [previous] = failed["checks"]
     [current] = fresh["checks"]
     assert (current["commit"], current["tree"]) == source
-    assert current["id"] != previous["id"]
-    assert current["argv"] == previous["argv"]
+    assert_new_attempt(previous, current)
     assert current["actual_exit_code"] == 0
     assert Path(current["stdout"]).read_text() == "fixture: external data ready\n"
-    assert Path(previous["stderr"]).read_text() == "fixture: external data unavailable\n"
-    assert previous["actual_exit_code"] == 23
-    prior_output = author.invoke(request("show", {"queries": [{
-        "id": "previous-failure", "kind": "tool_result", "receipt_id": previous["id"],
-        "representation": "full", "range": None,
-    }]}))
-    assert "fixture: external data unavailable" in prior_output["results"][0]["value"]["text"]
+    assert_retained_failure(author, previous)
+    after = task_state(author)
+    assert after["attempts"] == before["attempts"] + 1
+    assert after["submission_count"] == before["submission_count"]
     assert counter.read_text() == "blocked\nready\n"
     assert verify(author, payload, retry)["checks"] == fresh["checks"]
+    assert task_state(author) == after
     assert counter.read_text() == "blocked\nready\n"
     assert (git(workspace, "rev-parse", "HEAD"), git(workspace, "rev-parse", "HEAD^{tree}")) == source
     assert [item["id"] for item in fresh["feedback"]["pending_resolutions"]] == ["R1"]
     with pytest.raises(PoiseError, match="verified|failed|провер"):
         verify(author, payload, {**retry, "request_id": "fixture-already-verified"})
+    assert task_state(author) == after
     assert counter.read_text() == "blocked\nready\n"
 
     intent = {"task_id": "T1", "request_id": "fixture-retry-review", "target_stage": "review"}
@@ -167,16 +219,32 @@ def test_recovered_external_data_is_checked_again_before_independent_handoff(pro
 
 def test_fresh_terminal_failure_has_its_own_receipt_and_replays_without_spawning(project):
     author, _, payload, retry, _, counter, _, _, failed = setup_failed_candidate(project)
+    before = task_state(author)
     fresh = repeat(author, payload, retry)
     assert fresh["status"] == "checks_failed"
     [old] = failed["checks"]
     [new] = fresh["checks"]
-    assert new["id"] != old["id"]
-    assert new["actual_exit_code"] == 23
-    assert Path(new["stderr"]).read_text() == "fixture: external data unavailable\n"
+    assert_new_attempt(old, new)
+    for check in (old, new):
+        assert_retained_failure(author, check)
+    after = task_state(author)
+    assert (after["status"], after["stage"], after["iteration"], after["owner"]) == (
+        "active", "verification", before["iteration"], "handoff-author",
+    )
+    assert after["attempts"] == before["attempts"] + 1
+    assert after["submission_count"] == before["submission_count"]
+    assert after["feedback"]["pending_resolutions"] == before["feedback"]["pending_resolutions"]
+    assert [item["id"] for item in after["feedback"]["pending_resolutions"]] == ["R1"]
     assert verify(author, payload, retry)["checks"] == fresh["checks"]
-    with pytest.raises(PoiseError):
+    assert task_state(author) == after
+    with pytest.raises(PoiseError, match=r"(?i)request[_ ]id.*(different|changed|друг|измен)"):
         verify(author, payload, {**retry, "reason": "Changed request intent."})
+    progression = author.invoke(request("advance", {
+        "task_id": "T1", "request_id": "fixture-failed-retry-advance",
+    }))
+    assert progression["status"] == "progression_work_required"
+    assert progression["stage"] == "verification"
+    assert task_state(author) == after
     assert counter.read_text() == "blocked\nblocked\n"
 
 
@@ -195,10 +263,26 @@ def test_retry_admission_preserves_terminal_failure_on_refusal(project, conditio
         "stale": "failed|receipt|наблюд",
         "budget": "verify_attempts",
     }[condition]
+    before = task_state(author)
     with pytest.raises(PoiseError, match=expected_reason):
         verify(caller, payload, retry)
+    assert task_state(author) == before
     assert counter.read_text() == "blocked\n"
     assert verify(author, payload)["checks"] == failed["checks"]
+
+
+def test_retry_admission_preserves_unknown_attempt_without_spawning(project, monkeypatch):
+    author, _, payload, retry, state, counter, _, _, _ = setup_failed_candidate(
+        project, interrupt=monkeypatch,
+    )
+    state.write_text("ready\n", encoding="utf-8")
+    before = task_state(author)
+    assert before["attempts"] == 1
+    assert [item["id"] for item in before["feedback"]["pending_resolutions"]] == ["R1"]
+    with pytest.raises(PoiseError, match=r"(?i)unknown check outcome|неизвестен исход"):
+        verify(author, payload, retry)
+    assert task_state(author) == before
+    assert counter.read_text() == "blocked\n"
 
 
 def test_ordinary_rework_cannot_bypass_pending_independent_disposition(project):

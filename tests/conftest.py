@@ -11,6 +11,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 import pytest
 
+_source_fixtures = sys.modules[__name__]
+os.environ.setdefault("POISE_TEST_SOURCE_ROOT", str(Path(__file__).resolve().parents[1]))
+
 
 # The repository test command executes the sources from this exact worktree.
 _TASK_SOURCE_ROOT = Path(__file__).resolve().parents[1] / "src"

@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import ast
 import hashlib
+from dataclasses import dataclass
 from contextlib import closing, contextmanager, redirect_stdout
 from pathlib import Path
 import re
@@ -15,7 +16,8 @@ import sqlparse
 from yoyo import get_backend, read_migrations
 from yoyo.exceptions import LockTimeout
 
-from ..common import PoiseError
+from ..common import PoiseError, configured_root, descendant
+from .locking import exclusive_lock
 from ..modules.foundation.paths import matches_allowed_path
 
 
@@ -229,71 +231,64 @@ def _file_pairs(migration):
     return [(ast.literal_eval(call.args[0]), ast.literal_eval(call.args[1])) for call in steps.elts]
 
 
+@dataclass(frozen=True)
+class RequirementsProjectContext:
+    root: Path
+    cfg: dict
+    requirements_store: object
+    project_fence: object
+    runtime: Path
+
+    @classmethod
+    def configured(cls, root, cfg, store, fence):
+        state = configured_root(root, cfg['paths']['state'])
+        runtime = descendant(state, cfg['paths']['runtime']) / 'requirements'
+        return cls(root, cfg, store, fence, runtime)
+
+
 class RequirementsMigrations:
-    def __init__(self, runtime):
-        self.runtime = runtime
-        self.database = runtime.requirements_store.database
-        self.prepared_source = None
+    def __init__(self, project):
+        self.project = project
+        self.database = project.requirements_store.database
 
     def _capture(self, database):
         try:
-            return _capture(database, self.runtime.cfg['limits']['sqlite_read_seconds'])
+            return _capture(database, self.project.cfg['limits']['sqlite_read_seconds'])
         except sqlite3.Error as exc:
             raise PoiseError(f'Не удалось прочитать SQLite-БД требований {database}: {exc}') from exc
 
     def _configured_paths(self):
-        paths = self.runtime.cfg['paths']
+        paths = self.project.cfg['paths']
         result = {}
         for key in ('requirements_schema_migrations', 'requirements_data_migrations', 'requirements_schema_file'):
             value = paths.get(key)
             if not isinstance(value, str) or not value.strip() or '\0' in value:
                 raise PoiseError(f'paths.{key}: требуется явный непустой путь')
-            result[key] = (self.runtime.root / value).resolve()
+            result[key] = (self.project.root / value).resolve()
         return result
 
-    def _context(self, *, require_cwd):
-        runtime = self.runtime
-        data = runtime._task()
-        if data['claimed_by'] != runtime.session or data['worktree'] is None:
-            raise PoiseError('Для записи требований требуется владение Task и её worktree')
-        if runtime._stage(data)['read_only']:
-            raise PoiseError('Этап Task разрешает только чтение; запись требований запрещена')
-        if data['status'] != 'active' or data['pending'] is not None:
-            raise PoiseError('Текущий этап Task не разрешает запись требований')
-        worktree = Path(data['worktree']).resolve()
-        if require_cwd and Path.cwd().resolve() != worktree:
-            raise PoiseError('Запись требований выполняется из worktree текущей Task')
-        if runtime._git(worktree, 'symbolic-ref', '--short', 'HEAD') != data['branch']:
-            raise PoiseError('В worktree другая ветка Task')
-        return data, worktree
-
-    def _paths(self, *, completion=False):
-        configured = self._configured_paths()
-        data, worktree = self._context(require_cwd=not completion)
-        repository = Path(self.runtime.cfg['git']['repository']).resolve()
-        for key in ('requirements_data_migrations', 'requirements_schema_file'):
-            try:
-                relative = configured[key].relative_to(repository)
-            except ValueError as exc:
-                raise PoiseError(f'{key}: путь должен принадлежать репозиторию документации Task') from exc
-            destination = (worktree / relative).resolve()
-            if not destination.is_relative_to(worktree):
-                raise PoiseError(f'{key}: путь вне worktree')
-            configured[key] = destination
-        schema = configured['requirements_schema_migrations']
-        if schema == configured['requirements_data_migrations']:
+    def _paths(self):
+        paths = self._configured_paths()
+        if paths['requirements_schema_migrations'] == paths['requirements_data_migrations']:
             raise PoiseError('Истории schema и data должны располагаться отдельно')
-        return configured
+        return paths
 
     def _authorize(self, destinations):
-        data, worktree = self._context(require_cwd=False)
-        scope = data['contract']['stage_contracts'][data['stage_index']]['allowed_paths']
+        paths = self._paths()
         for destination in destinations:
             resolved = Path(destination).resolve()
-            if (not resolved.is_relative_to(worktree) or not any(
-                    matches_allowed_path(resolved.relative_to(worktree).as_posix(), pattern)
-                    for pattern in scope)):
-                raise PoiseError(f'Путь {destination} вне области allowed_paths текущего этапа')
+            if not (resolved.is_relative_to(paths['requirements_data_migrations'])
+                    or resolved == paths['requirements_schema_file']):
+                raise PoiseError(f'Путь {destination} вне настроенных ресурсов требований')
+
+    @contextmanager
+    def mutation(self):
+        store = self.project.requirements_store
+        if store.read_only:
+            raise PoiseError('Хранилище требований открыто только для чтения')
+        with self.project.project_fence.locked():
+            with exclusive_lock(store.lock, store.lock_seconds, store.poll_seconds):
+                yield
 
     @staticmethod
     def _new_backend(kind, database, busy_seconds):
@@ -306,8 +301,8 @@ class RequirementsMigrations:
 
     @contextmanager
     def _backend(self, kind, database):
-        with self.runtime.project_fence.locked():
-            with self._standard_backend(kind, database, self.runtime.cfg['limits']['lock_seconds']) as backend:
+        with self.project.project_fence.locked():
+            with self._standard_backend(kind, database, self.project.cfg['limits']['lock_seconds']) as backend:
                 yield backend
 
     @classmethod
@@ -336,8 +331,8 @@ class RequirementsMigrations:
         return history
 
     def _schema_baseline(self, paths):
-        self.runtime.runtime.mkdir(parents=True, exist_ok=True)
-        with TemporaryDirectory(prefix='requirements-schema-', dir=self.runtime.runtime) as temporary:
+        self.project.runtime.mkdir(parents=True, exist_ok=True)
+        with TemporaryDirectory(prefix='requirements-schema-', dir=self.project.runtime) as temporary:
             database = Path(temporary) / 'schema.sqlite'
             with self._backend('schema', database) as backend:
                 history = self._history(paths, 'schema')
@@ -373,9 +368,9 @@ class RequirementsMigrations:
         try:
             if rollback and kind == 'schema':
                 # Initialize before the shared schema lock, then reread under it.
-                data_backend = self._new_backend('data', self.database, self.runtime.cfg['limits']['lock_seconds'])
-                with self.runtime.project_fence.locked():
-                    with data_backend.lock(timeout=self.runtime.cfg['limits']['lock_seconds']):
+                data_backend = self._new_backend('data', self.database, self.project.cfg['limits']['lock_seconds'])
+                with self.project.project_fence.locked():
+                    with data_backend.lock(timeout=self.project.cfg['limits']['lock_seconds']):
                         data_backend.get_applied_migration_hashes()
             with self._backend(kind, self.database) as backend:
                 if data_backend is not None and data_backend.get_applied_migration_hashes():
@@ -541,8 +536,8 @@ class RequirementsMigrations:
         return {'migration': str(destination)}
 
     def _export_pairs(self, captured, selection, paths):
-        self.runtime.runtime.mkdir(parents=True, exist_ok=True)
-        with TemporaryDirectory(prefix='requirements-export-', dir=self.runtime.runtime) as temporary:
+        self.project.runtime.mkdir(parents=True, exist_ok=True)
+        with TemporaryDirectory(prefix='requirements-export-', dir=self.project.runtime) as temporary:
             directory = Path(temporary)
             database = directory / 'validation.sqlite'
             with self._backend('schema', database) as backend:
@@ -560,11 +555,11 @@ class RequirementsMigrations:
                 pairs = _snapshot_pairs(captured, baseline)
             else:
                 pairs = self._transfer_pairs(captured, selection)
-                with self.runtime.project_fence.locked():
+                with self.project.project_fence.locked():
                     with closing(sqlite3.connect(self.database.resolve().as_uri() + '?mode=ro', uri=True,
-                                                 timeout=self.runtime.cfg['limits']['sqlite_read_seconds'])) as source:
+                                                 timeout=self.project.cfg['limits']['sqlite_read_seconds'])) as source:
                         with closing(sqlite3.connect(database,
-                                                     timeout=self.runtime.cfg['limits']['sqlite_read_seconds'])) as target:
+                                                     timeout=self.project.cfg['limits']['sqlite_read_seconds'])) as target:
                             source.backup(target)
             migration = directory / ('validation-' + uuid.uuid4().hex + '.py')
             migration.write_text(_render(pairs, ()), encoding='utf-8')
@@ -645,6 +640,60 @@ class RequirementsMigrations:
                                      for column, index in zip(keys, indexes))
                 pairs.append((forward, f'DELETE FROM {_identifier(name)} WHERE {where};'))
         return pairs
+
+
+
+class TaskRequirementsMigrations(RequirementsMigrations):
+    """Task-source admission and completion, separate from public app writes."""
+
+    def __init__(self, runtime, project):
+        super().__init__(project)
+        self.runtime = runtime
+        self.prepared_source = None
+
+    def _context(self, *, require_cwd):
+        runtime = self.runtime
+        data = runtime._task()
+        if data['claimed_by'] != runtime.session or data['worktree'] is None:
+            raise PoiseError('Для записи требований требуется владение Task и её worktree')
+        if runtime._stage(data)['read_only']:
+            raise PoiseError('Этап Task разрешает только чтение; запись требований запрещена')
+        if data['status'] != 'active' or data['pending'] is not None:
+            raise PoiseError('Текущий этап Task не разрешает запись требований')
+        worktree = Path(data['worktree']).resolve()
+        if require_cwd and Path.cwd().resolve() != worktree:
+            raise PoiseError('Запись требований выполняется из worktree текущей Task')
+        if runtime._git(worktree, 'symbolic-ref', '--short', 'HEAD') != data['branch']:
+            raise PoiseError('В worktree другая ветка Task')
+        return data, worktree
+
+    def _paths(self, *, completion=False):
+        configured = self._configured_paths()
+        data, worktree = self._context(require_cwd=not completion)
+        repository = Path(self.runtime.cfg['git']['repository']).resolve()
+        for key in ('requirements_data_migrations', 'requirements_schema_file'):
+            try:
+                relative = configured[key].relative_to(repository)
+            except ValueError as exc:
+                raise PoiseError(f'{key}: путь должен принадлежать репозиторию документации Task') from exc
+            destination = (worktree / relative).resolve()
+            if not destination.is_relative_to(worktree):
+                raise PoiseError(f'{key}: путь вне worktree')
+            configured[key] = destination
+        schema = configured['requirements_schema_migrations']
+        if schema == configured['requirements_data_migrations']:
+            raise PoiseError('Истории schema и data должны располагаться отдельно')
+        return configured
+
+    def _authorize(self, destinations):
+        data, worktree = self._context(require_cwd=False)
+        scope = data['contract']['stage_contracts'][data['stage_index']]['allowed_paths']
+        for destination in destinations:
+            resolved = Path(destination).resolve()
+            if (not resolved.is_relative_to(worktree) or not any(
+                    matches_allowed_path(resolved.relative_to(worktree).as_posix(), pattern)
+                    for pattern in scope)):
+                raise PoiseError(f'Путь {destination} вне области allowed_paths текущего этапа')
 
     def prepare_task_migrations(self):
         runtime = self.runtime

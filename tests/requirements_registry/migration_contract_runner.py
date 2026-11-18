@@ -36,7 +36,8 @@ class Observations:
 observed = Observations()
 output = io.StringIO()
 with contextlib.redirect_stdout(output), contextlib.redirect_stderr(output):
-    code = pytest.main(['-q', '--tb=short', 'tests/requirements_registry/test_data_migrations.py'], plugins=[observed])
+    targets = sys.argv[1:] or ['tests/requirements_registry/test_data_migrations.py']
+    code = pytest.main(['-q', '--tb=short', *targets], plugins=[observed])
 record = Path(os.environ['POISE_RUN_OUTPUT_DIR']) / 'pytest.txt'
 record.parent.mkdir(parents=True, exist_ok=True)
 record.write_text(output.getvalue(), encoding='utf-8')

@@ -185,11 +185,26 @@ class Scene:
         if binding is not None:
             environment['POISE_CALLER_BINDING'] = str(binding)
         packet = {'operation': operation, 'input': body}
-        completed = subprocess.run(
-            [sys.executable, '-B', '-m', 'poise', 'requirements', '--config', str(self.project['config_path'])],
-            input=json.dumps(packet, ensure_ascii=False), text=True, capture_output=True,
-            cwd=self.worktree, env=environment, timeout=30,
-        )
+        # Legacy Task-source scenarios declare their actual source explicitly;
+        # public Requirements no longer infers it from a Task or caller cwd.
+        config_path = self.project['config_path']
+        original = config_path.read_bytes()
+        selected = json.loads(original)
+        for key, relative in (
+            ('requirements_data_migrations', self.data_relative),
+            ('requirements_schema_file', self.bootstrap_relative),
+        ):
+            if selected['paths'][key] == str(self.project['app'] / relative):
+                selected['paths'][key] = str(self.worktree / relative)
+        try:
+            write_json(config_path, selected)
+            completed = subprocess.run(
+                [sys.executable, '-B', '-m', 'poise', 'requirements', '--config', str(config_path)],
+                input=json.dumps(packet, ensure_ascii=False), text=True, capture_output=True,
+                cwd=self.worktree, env=environment, timeout=30,
+            )
+        finally:
+            config_path.write_bytes(original)
         assert completed.stdout.strip(), completed.stderr
         value = json.loads(completed.stdout)
         if 'response_path' in value:

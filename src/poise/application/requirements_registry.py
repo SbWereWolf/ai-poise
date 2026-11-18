@@ -34,31 +34,39 @@ class RequirementsQueries:
 class RequirementsCommands(RequirementsQueries):
     """Canonical changes create literal migrations and apply them through yoyo."""
 
-    def __init__(self, store, max_items, migrations):
+    def __init__(self, store, max_items, migrations, task_migrations=None):
         super().__init__(store, max_items)
         self.migrations = migrations
+        self.task_migrations = task_migrations
+
+    def _mutate(self, operation, request):
+        with self.migrations.mutation():
+            return getattr(self.migrations, operation)(request)
 
     def apply(self, request):
-        return self.migrations.apply(request)
+        return self._mutate('apply', request)
 
     def command(self, request):
-        return self.migrations.command(request)
+        return self._mutate('command', request)
 
     def rollback(self, request):
-        return self.migrations.rollback(request)
+        return self._mutate('rollback', request)
 
     def squash(self, request):
-        return self.migrations.squash(request)
+        return self._mutate('squash', request)
 
     def rebase(self, request):
-        return self.migrations.rebase(request)
+        return self._mutate('rebase', request)
 
     def export(self, request):
-        return self.migrations.export(request)
+        return self._mutate('export', request)
 
     def prepare_task_migrations(self):
         try:
-            return self.migrations.prepare_task_migrations()
+            if self.task_migrations is None:
+                raise PoiseError('Адаптер завершения Task не настроен')
+            with self.task_migrations.mutation():
+                return self.task_migrations.prepare_task_migrations()
         except PoiseError as exc:
             return {'status': 'requirements_migration_failed', 'reason': str(exc),
                     'recovery': 'Исправьте SQL миграции требований и повторите передачу этапа.'}

@@ -231,6 +231,17 @@ def _file_pairs(migration):
     return [(ast.literal_eval(call.args[0]), ast.literal_eval(call.args[1])) for call in steps.elts]
 
 
+def _migration_sources(migrations):
+    """Ordered physical files belonging to the already selected yoyo history."""
+    sources = []
+    for migration in migrations:
+        source = Path(migration.path)
+        sources.append(source)
+        if source.suffix == '.sql':
+            sources.append(source.with_name(source.stem + '.rollback.sql'))
+    return tuple(sources)
+
+
 @dataclass(frozen=True)
 class RequirementsProjectContext:
     root: Path
@@ -433,13 +444,8 @@ class RequirementsMigrations:
         if name in indexed or (directory / (name + '.py')).exists():
             raise PoiseError(f'name: миграция {name} уже существует')
         selected = history.filter(lambda migration: migration.id in identifiers)
-        destinations = [directory / (name + '.py')]
-        for migration in selected:
-            source = Path(migration.path)
-            destinations.append(source)
-            if source.suffix == '.sql':
-                destinations.append(source.with_name(source.stem + '.rollback.sql'))
-        self._authorize(destinations)
+        sources = _migration_sources(selected)
+        self._authorize([directory / (name + '.py'), *sources])
         dependencies = set()
         for migration in history:
             depends = {dependency.id for dependency in migration.depends}
@@ -456,11 +462,8 @@ class RequirementsMigrations:
                 ordered = list(reversed(reverse))
                 pairs = [pair for migration in ordered for pair in _file_pairs(migration)]
                 backend.rollback_migrations(reverse)
-                for migration in selected:
-                    source = Path(migration.path)
+                for source in sources:
                     source.unlink()
-                    if source.suffix == '.sql':
-                        source.with_name(source.stem + '.rollback.sql').unlink()
                 self._write(directory, name, pairs, dependencies)
                 updated = self._history(paths, 'data')
                 combined = updated.filter(lambda migration: migration.id == name)
@@ -483,24 +486,16 @@ class RequirementsMigrations:
         history = self._history(paths, 'data')
         if any(migration.id == name for migration in history):
             raise PoiseError(f'name: миграция {name} уже существует')
-        destinations = [directory / (name + '.py'), paths['requirements_schema_file']]
-        for migration in history:
-            source = Path(migration.path)
-            destinations.append(source)
-            if source.suffix == '.sql':
-                destinations.append(source.with_name(source.stem + '.rollback.sql'))
-        self._authorize(destinations)
+        sources = _migration_sources(history)
+        self._authorize([directory / (name + '.py'), paths['requirements_schema_file'], *sources])
         before = self._capture(self.database)
         pairs = _snapshot_pairs(before, self._schema_baseline(paths))
         bootstrap = ';\n'.join(before['schema']) + ';\n'
         try:
             with self._backend('data', self.database) as backend:
                 backend.unmark_migrations(history)
-                for migration in history:
-                    source = Path(migration.path)
+                for source in sources:
                     source.unlink()
-                    if source.suffix == '.sql':
-                        source.with_name(source.stem + '.rollback.sql').unlink()
                 self._write(directory, name, pairs)
                 schema_file = paths['requirements_schema_file']
                 schema_file.parent.mkdir(parents=True, exist_ok=True)

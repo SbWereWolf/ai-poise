@@ -250,12 +250,13 @@ startup/fork описаны в [общей
 
 `snapshot` для `hook-proxy` — фактический принадлежащий этим settings файл, созданный
 владельцем проекции; его путь берётся из квитанции. Управляющие операции
-`session-start-proxy` и `pre-tool-use-proxy` передаются через `runtime-config`,
+`session-start-proxy`, `pre-tool-use-proxy` и `post-tool-use-proxy` передаются через `runtime-config`,
 с действиями `publish` или `restore`. Это отдельный вход от исполнения native-события.
 Готовый [общий пример и сохранённый повтор](../configuration/runtime-hooks.md#пакет-и-сохранённый-повтор),
-[точные поля](../configuration/runtime-hooks.md#поля-и-результат-операции-прокси) и
+[точные поля](../configuration/runtime-hooks.md#поля-и-результат-операции-прокси),
+[поведение PostToolUse](../configuration/runtime-hooks.md#первоначальный-прокси-posttooluse) и
 [пределы PreToolUse](../configuration/runtime-hooks.md#первоначальный-прокси-pretooluse)
-принадлежат операторскому договору. Уточнено **2026-11-17**.
+принадлежат операторскому договору. Уточнено **2026-11-18**.
 
 Для чтения последней сводки пакет содержит только свою фактическую binding:
 

@@ -75,3 +75,15 @@ def test_old_sync_control_and_full_streams_are_fixture_effects(scene):
 def test_real_native_tool_result_control(project, tmp_path, enforce):
     from .post_tool_proxy_support import actual_output_case
     actual_output_case(project, tmp_path, proxy=False, enforce=enforce)
+
+
+def test_popen_observer_delegates_an_existing_working_proxy_without_inventing_failure(scene):
+    handler = scene.publish(event='SessionStart')
+    launches = scene.root / 'existing-start-launches.jsonl'
+    raw = scene.raw_event()
+    result = invoke(handler['command'], raw, scene.root,
+                    environment={'POST_TOOL_SPAWN_RECORD': str(launches)})
+    assert (result.returncode, result.stdout, result.stderr) == (0, b'{}\n', b'')
+    scene.assert_calls(raw, [2, 0, 1])
+    rows = [json.loads(line) for line in launches.read_text().splitlines()]
+    assert [row['target'] for row in rows] == [0, 1]

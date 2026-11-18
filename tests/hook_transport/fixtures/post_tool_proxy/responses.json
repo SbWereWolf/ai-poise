@@ -1,0 +1,19 @@
+{
+  "post-context": {
+    "hookSpecificOutput": {
+      "hookEventName": "PostToolUse",
+      "additionalContext": "literal ERP context"
+    }
+  },
+  "audit-native": {
+    "hookSpecificOutput": {
+      "hookEventName": "PostToolUse",
+      "additionalContext": "Bash: 2 records; exit unavailable"
+    }
+  },
+  "enforce-native": {
+    "continue": false,
+    "stopReason": "Bash: 2 records; exit unavailable"
+  },
+  "unbound-diagnostics": "Native event requires its genuine preceding SessionStart binding\nNative event requires its genuine preceding SessionStart binding\n"
+}

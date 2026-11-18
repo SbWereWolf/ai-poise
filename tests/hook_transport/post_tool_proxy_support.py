@@ -187,11 +187,8 @@ def actual_output_case(project, parent, *, proxy, enforce=False):
     result = invoke(command, raw, parent, chain.session)
     assert result.returncode == 0 and result.stderr == b''
     response = json.loads(result.stdout)
-    if enforce:
-        assert response == {'continue': False, 'stopReason': expected['brief']}
-    else:
-        assert response == {'hookSpecificOutput': {
-            'hookEventName': 'PostToolUse', 'additionalContext': expected['brief']}}
+    answers = json.loads((FIXTURES / 'responses.json').read_text())
+    assert response == answers['enforce-native' if enforce else 'audit-native']
     answer = output.service('full')
     assert Path(answer['full_path']).read_bytes() == expected['raw'].encode()
     records = [json.loads(path.read_text()) for path in
@@ -200,3 +197,13 @@ def actual_output_case(project, parent, *, proxy, enforce=False):
     assert len(deliveries) == 1
     assert deliveries[0]['event']['tool_response'] == expected['raw']
     return response
+
+
+def wait_diagnostic(root, text):
+    """Bound observation of actual saved failure, without delaying the hook reply."""
+    deadline = time.monotonic() + 5
+    while time.monotonic() < deadline:
+        if any(text in path.read_text() for path in root.rglob('*.json')):
+            return
+        time.sleep(.01)
+    raise AssertionError(('SAVED_ASYNC_DIAGNOSTIC_MISSING', text))

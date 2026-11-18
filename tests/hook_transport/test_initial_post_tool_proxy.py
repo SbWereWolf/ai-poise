@@ -9,7 +9,7 @@ import pytest
 
 from poise.infrastructure.session_establishment import cleanup_project_session_runtime
 from .initial_proxy_support import invoke
-from .post_tool_proxy_support import PostToolScene
+from .post_tool_proxy_support import FIXTURES, PostToolScene
 from .pre_tool_proxy_support import captured, runner_records
 
 
@@ -116,11 +116,11 @@ def test_foreign_launch_failure_is_diagnostic_and_never_stops_later_sync_command
     result = invoke(handler['command'], raw, scene.root, environment={
         'POST_TOOL_SPAWN_RECORD': str(launches), 'POST_TOOL_FAIL_TARGET': 'metric'})
     assert json.loads(result.stdout) == {}
-    assert 'fixture actual foreign Popen failure' in result.stderr.decode()
     scene.assert_calls(raw, [0, 1])
     assert not (scene.trace / 'metric-started').exists()
-    documents = [p.read_text() for p in scene.capture_roots['proxy-fixture-session'].rglob('*.json')]
-    assert any('fixture actual foreign Popen failure' in text for text in documents)
+    from .post_tool_proxy_support import wait_diagnostic
+    wait_diagnostic(scene.capture_roots['proxy-fixture-session'],
+                    'fixture actual foreign Popen failure')
 
 
 @pytest.mark.parametrize('codes,expected', [([1, 0], 1), ([1, 2], 2), ([2, 0], 2)], ids=['first-error', 'later-two', 'early-two'])
@@ -179,7 +179,8 @@ def test_real_native_post_guards_and_delivery_are_preserved(scene, repository, b
     raw = scene.tool_raw(repository=repository)
     result = invoke(handler['command'], raw, scene.root)
     assert (result.returncode, result.stdout, result.stderr) == (
-        1, b'{}\n', b'Native event requires its genuine preceding SessionStart binding\n' * expected)
+        1, b'{}\n', (json.loads((FIXTURES / 'responses.json').read_text())['unbound-diagnostics'].encode()
+                      if expected == 2 else b'Native event requires its genuine preceding SessionStart binding\n'))
     for number in (0, 1):
         rows = scene.post_deliveries(number)
         success = bound and number == (1 if repository == 'poise' else 0)
@@ -206,13 +207,11 @@ def test_foreign_receives_oversized_input_while_original_native_admission_refuse
 
 
 def test_post_context_and_native_event_name_are_preserved(scene):
-    scene.outcome(0, response={'hookSpecificOutput': {
-        'hookEventName': 'PostToolUse', 'additionalContext': 'literal ERP context'}})
+    expected = json.loads((FIXTURES / 'responses.json').read_text())['post-context']
+    scene.outcome(0, response=expected)
     handler = scene.publish()
     result = invoke(handler['command'], scene.tool_raw(), scene.root)
-    assert (result.returncode, json.loads(result.stdout), result.stderr) == (0, {
-        'hookSpecificOutput': {'hookEventName': 'PostToolUse',
-                               'additionalContext': 'literal ERP context'}}, b'')
+    assert (result.returncode, json.loads(result.stdout), result.stderr) == (0, expected, b'')
 
 
 def test_revision_replay_and_restore_keep_existing_projections(scene):

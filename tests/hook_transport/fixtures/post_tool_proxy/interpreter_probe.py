@@ -26,7 +26,8 @@ if os.environ.get('POST_TOOL_SPAWN_RECORD') and module >= 0 and not legacy:
         if target is not None:
             with Path(os.environ['POST_TOOL_SPAWN_RECORD']).open('a') as stream:
                 stream.write(json.dumps({'target': target, 'argv': argv}) + '\n')
-        if target == os.environ.get('POST_TOOL_FAIL_TARGET'):
+        failure = os.environ.get('POST_TOOL_FAIL_TARGET')
+        if failure is not None and target == failure:
             raise OSError('fixture actual foreign Popen failure')
         return original(argv, *args, **kwargs)
 

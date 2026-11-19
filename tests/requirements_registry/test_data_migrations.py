@@ -9,7 +9,7 @@ import sys
 import pytest
 
 from requirements_registry.migration_support import (
-    Scene, COLUMNS, FIXTURES, create_database, populate_database, schema_fixture,
+    Scene, COLUMNS, FIXTURES, SOURCE, create_database, populate_database, schema_fixture,
     schema_b_database, migration, snapshot, sql,
 )
 from requirements_registry.fixtures.native_migrations.isolated_replay import history_backend
@@ -112,7 +112,7 @@ def effects(scene, foreign=None):
 def isolated_replay(schema, data, target):
     process = subprocess.run([
         sys.executable, '-I', '-S', '-B', str(FIXTURES / 'isolated_replay.py'),
-        str(Path(__file__).resolve().parents[2] / '.runtime/dependencies'),
+        str(SOURCE.parent / '.runtime/dependencies'),
         str(schema), str(data), str(target),
     ], text=True, capture_output=True, timeout=30)
     assert process.returncode == 0, process.stdout + process.stderr
@@ -312,12 +312,10 @@ def test_ddl_cannot_enter_requirement_data_history(scene):
     assert scene.files() == files and snapshot(scene.database) == before
 
 
-def test_unclaimed_caller_cannot_write_in_primary_checkout(scene):
-    before = snapshot(scene.database)
-    code, value = scene.invoke('command', COMMANDS['create'], owned=False)
-    assert code != 0 and value['status'] == 'rejected'
-    assert 'task' in value['reason'].lower() or 'задач' in value['reason'].lower()
-    assert snapshot(scene.database) == before and scene.files() == {}
+def test_unclaimed_caller_writes_configured_application(scene):
+    from requirements_registry.task_independent_support import Application
+    app = Application(scene.project, empty=False)
+    _independent_scene_write(scene, app)
 
 
 def test_duplicate_migration_name_does_not_overwrite_source_or_data(scene):
@@ -688,17 +686,18 @@ def test_unknown_configuration_key_does_not_change_current_operation(scene):
     assert sql(scene.database, 'SELECT id FROM requirements WHERE id=?', ('TEMP',)) == [('TEMP',)]
 
 
-def test_data_path_outside_stage_scope_is_rejected(scene):
+def test_configured_data_path_is_independent_of_task_stage_scope(scene):
     from conftest import write_json
-    outside = scene.project['app'] / 'src/forbidden-data'
+    from requirements_registry.task_independent_support import Application
+    outside = scene.project['app'] / 'src/configured-data'
     scene.cfg['paths']['requirements_data_migrations'] = str(outside)
     write_json(scene.project['config_path'], scene.cfg)
-    before = snapshot(scene.database)
-    code, value = scene.invoke('command', COMMANDS['create'])
-    assert code != 0 and value['status'] == 'rejected'
-    assert 'scope' in value['reason'].lower() or 'област' in value['reason'].lower()
-    assert snapshot(scene.database) == before
-    assert not outside.exists() and not (scene.worktree / 'src/forbidden-data').exists()
+    app = Application(scene.project, empty=False)
+    app.binding = scene.binding
+    app.cwd = scene.worktree
+    _independent_scene_write(scene, app)
+    assert (outside / '0100-taskless.py').is_file()
+    assert not (scene.worktree / 'src/configured-data').exists()
 
 
 @pytest.mark.parametrize('name', ['../escape', '/absolute', 'bad/name', ''])
@@ -816,28 +815,26 @@ def test_invalid_history_kind_has_causal_refusal(scene, operation, body):
     assert effects(scene) == before
 
 
-def test_foreign_claimed_caller_cannot_write_another_task_worktree(scene):
+def test_foreign_task_claim_does_not_redirect_project_write(scene):
+    from requirements_registry.task_independent_support import Application
     binding, runtime, context = scene.foreign_context()
     assert context['task'] == 'T2' and context['stage'] == 'tests'
     assert runtime.session != scene.runtime.session
     foreign = Path(context['worktree'])
-    assert foreign != scene.worktree and foreign.is_dir()
-    before = effects(scene, foreign)
-    code, value = scene.invoke('command', COMMANDS['create'], binding=binding)
-    assert code != 0 and value['status'] == 'rejected'
-    assert any(word in value['reason'].lower() for word in ('foreign', 'чуж', 'context', 'контекст', 'worktree'))
-    assert value['recovery'].strip() and effects(scene, foreign) == before
+    app = Application(scene.project, empty=False)
+    app.binding = binding
+    app.cwd = scene.worktree
+    _independent_scene_write(scene, app, foreign)
 
 
-def test_readonly_owned_context_cannot_write_requirements(project):
+def test_readonly_task_does_not_gate_application_requirements(project):
+    from requirements_registry.task_independent_support import Application
     scene = Scene(project, read_only=True)
-    assert scene.context['stage'] == 'tests'
     assert scene.context['workflow']['stage_contract']['allowed_paths'] == []
-    before = effects(scene)
-    code, value = scene.invoke('command', COMMANDS['create'])
-    assert code != 0 and value['status'] == 'rejected'
-    assert any(word in value['reason'].lower() for word in ('readonly', 'read-only', 'чтени'))
-    assert value['recovery'].strip() and effects(scene) == before
+    app = Application(project, empty=False)
+    app.binding = scene.binding
+    app.cwd = scene.worktree
+    _independent_scene_write(scene, app)
 
 
 def test_standard_sql_history_applies_rolls_back_and_reapplies(scene):
@@ -857,3 +854,29 @@ def test_standard_sql_history_applies_rolls_back_and_reapplies(scene):
     assert [(name, operation) for name, operation in journal_operations(scene.database)
             if name == 'standard-data'] == [
         ('standard-data', 'apply'), ('standard-data', 'rollback'), ('standard-data', 'apply')]
+
+
+def _independent_scene_write(scene, app, foreign=None):
+    """Four contract replacements keep actual app effects and Task isolation."""
+    from requirements_registry.task_independent_support import (
+        assert_command_effect, file_state, success, task_state,
+    )
+    worktrees = [scene.worktree] + ([] if foreign is None else [foreign])
+    tasks = task_state(scene.project)
+    worktree_files = [file_state(path) for path in worktrees]
+    branches = [subprocess.check_output(
+        ['git', '-C', str(path), 'symbolic-ref', '--short', 'HEAD'], text=True,
+    ) for path in worktrees]
+    before = snapshot(scene.database)
+    primary = file_state(scene.project['app'])
+    success(app.command())
+    assert_command_effect(app, before)
+    assert task_state(scene.project) == tasks
+    assert [file_state(path) for path in worktrees] == worktree_files
+    assert [subprocess.check_output(
+        ['git', '-C', str(path), 'symbolic-ref', '--short', 'HEAD'], text=True,
+    ) for path in worktrees] == branches
+    assert not (scene.worktree / scene.data_relative / '0100-taskless.py').exists()
+    after = file_state(scene.project['app'])
+    generated = str((app.history / '0100-taskless.py').relative_to(scene.project['app']))
+    assert {key: value for key, value in after.items() if key != generated} == primary

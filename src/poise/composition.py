@@ -191,26 +191,29 @@ def placement_tools(bound, policy_path, environ):
 
 
 def requirements_tools(config_path, *, read_only=False):
+    from .application.requirements_registry import RequirementsQueries, RequirementsCommands
+    from .common import configured_root, configured_storage_path, load_config
+    from .infrastructure.project_resources import ProjectRuntimeFence
+    from .infrastructure.requirements_registry import RequirementsStore
+    root, config, _ = load_config(config_path)
+    paths, limits = config['paths'], config['limits']
+    state = configured_root(root, paths['state'])
+    fence = ProjectRuntimeFence(config_path, state)
+    store = RequirementsStore(
+        configured_storage_path(state, paths['requirements_database']),
+        configured_storage_path(state, paths['requirements_lock']),
+        limits['lock_seconds'], limits['lock_poll_seconds'], fence,
+        read_only=read_only, read_wait=limits['sqlite_read_seconds'],
+    )
     if read_only:
-        from .application.requirements_registry import RequirementsQueries
-        from .common import configured_root, configured_storage_path, load_config
-        from .infrastructure.project_resources import ProjectRuntimeFence
-        from .infrastructure.requirements_registry import RequirementsStore
-        root, config, _ = load_config(config_path)
-        paths, limits = config['paths'], config['limits']
-        state = configured_root(root, paths['state'])
-        store = RequirementsStore(
-            configured_storage_path(state, paths['requirements_database']),
-            configured_storage_path(state, paths['requirements_lock']),
-            limits['lock_seconds'], limits['lock_poll_seconds'], ProjectRuntimeFence(config_path),
-            read_only=True, read_wait=limits['sqlite_read_seconds'],
-        )
         return RequirementsQueries(store, config['batch']['max_items']), config
-    import os
-    from .infrastructure.clock import SystemClock
-    from .infrastructure.session_establishment import establish_direct_poise
-    runtime = establish_direct_poise(config_path, os.environ, SystemClock(), read_only=read_only).runtime
-    return runtime.requirements_commands, runtime.cfg
+    from .infrastructure.requirements_data_migrations import (
+        RequirementsMigrations, RequirementsProjectContext,
+    )
+    context = RequirementsProjectContext.configured(root, config, store, fence)
+    return RequirementsCommands(
+        store, config['batch']['max_items'], RequirementsMigrations(context),
+    ), config
 
 
 def goal_config_tools(settings_path):

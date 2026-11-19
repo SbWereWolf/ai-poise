@@ -806,8 +806,13 @@ Keep this English projection and its Russian source consistent in the same chang
 - User-facing errors explain the failure, verified cause or remaining uncertainty, and an actionable
   recovery within the
   user's authority. Do not expose secrets or invent certainty.
-- Persist requirements through the Poise API: create a literal DML migration in the claimed Task
-  worktree, then apply it with yoyo. Keep DDL history in the application, DML history and one
+- Persist requirements through the Poise API using the selected application's explicit configuration
+  and own database, lock, migration and bootstrap paths: create a literal DML migration, then apply
+  it with yoyo. Public registry operations require no Task, claim, stage or managed worktree, do not
+  redirect resources into one and do not create a Task DB. Registry requirements supply Task
+  requirements; agreed System → Application → Task lineage and immutable publication snapshots
+  remain mandatory. The separate actual Task completion adapter retains context, ownership,
+  worktree and file-scope checks. Keep DDL history in the application, DML history and one
   current bootstrap in project documentation, and runtime SQLite/sidecars outside Git. After
   a schema change replace obsolete DML history with a full current-schema data migration;
   never put DDL into data migrations. Follow the [canonical

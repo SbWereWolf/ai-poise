@@ -130,11 +130,17 @@ class Poise:
             read_only=read_only,
             read_wait=limits['sqlite_read_seconds'],
         )
-        from .infrastructure.requirements_data_migrations import RequirementsMigrations
+        from .infrastructure.requirements_data_migrations import (
+            RequirementsMigrations, RequirementsProjectContext, TaskRequirementsMigrations,
+        )
+        requirements_context = RequirementsProjectContext.configured(
+            self.root, self.cfg, self.requirements_store, self.project_fence,
+        )
         self.requirements_commands = RequirementsCommands(
             self.requirements_store,
             self.cfg['batch']['max_items'],
-            RequirementsMigrations(self),
+            RequirementsMigrations(requirements_context),
+            TaskRequirementsMigrations(self, requirements_context),
         )
         from .infrastructure.requirements_registry import SqliteRegistrySnapshotProvider
         requirements_gate = TaskRequirementsGate.from_provider(

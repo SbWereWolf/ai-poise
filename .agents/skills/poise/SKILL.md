@@ -1157,6 +1157,14 @@ roles, overriding native identity or editing Task DB to get past the guard.
 
 ## Requirements provenance
 
+Public registry mutations select the application's own explicit configuration and resources;
+no Task creation, claim, state, stage or managed worktree is required. They neither redirect
+history/bootstrap into a Task worktree nor open/create the Task DB. Registry requirements are
+inputs to Task requirements. Preserve strict lineage, agreement and publication snapshots below.
+Actual Task completion uses its separate adapter with ordinary context/ownership/worktree/file-scope
+checks. Follow the English [registry usage and maintenance reference](../../references/requirements-registry.md)
+and canonical Russian [ownership contract](../../../docs/workflows/requirements-registry.md#владение-и-явные-пути).
+
 Use the project Requirements batch API and show the full System → Application → Task
 texts and statuses before agreement. Never infer acceptance from a ready plan or IDs.
 Publish the exact agreed snapshot through the existing Task/Sprint owner; preserve

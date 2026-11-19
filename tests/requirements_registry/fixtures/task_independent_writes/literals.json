@@ -1,0 +1,397 @@
+{
+  "command": {
+    "name": "0100-taskless",
+    "sql": "INSERT INTO requirements(id,level,status,text) VALUES('SYS-TASKLESS','system','current','Taskless system'); INSERT INTO requirements(id,level,status,text) VALUES('APP-TASKLESS','application','current','Taskless application'); INSERT INTO requirement_links(system_id,application_id) VALUES('SYS-TASKLESS','APP-TASKLESS'); UPDATE requirements_meta SET revision=revision+1",
+    "rollback_sql": "UPDATE requirements_meta SET revision=revision-1; DELETE FROM requirement_links WHERE system_id='SYS-TASKLESS' AND application_id='APP-TASKLESS'; DELETE FROM requirements WHERE id='APP-TASKLESS'; DELETE FROM requirements WHERE id='SYS-TASKLESS'"
+  },
+  "command_rows": [
+    [
+      "SYS-TASKLESS",
+      "system",
+      "current",
+      "Taskless system"
+    ],
+    [
+      "APP-TASKLESS",
+      "application",
+      "current",
+      "Taskless application"
+    ]
+  ],
+  "other_command": {
+    "name": "0100-other",
+    "sql": "INSERT INTO requirements(id,level,status,text) VALUES('ONLY-B','system','current','B'); UPDATE requirements_meta SET revision=revision+1",
+    "rollback_sql": "UPDATE requirements_meta SET revision=revision-1; DELETE FROM requirements WHERE id='ONLY-B'"
+  },
+  "failing_command": {
+    "name": "0400-failing",
+    "sql": "INSERT INTO requirements(id,level,status,text) VALUES('PARTIAL','system','current','must roll back'); INSERT INTO missing_table(id) VALUES('failure')",
+    "rollback_sql": "DELETE FROM requirements WHERE id='PARTIAL'"
+  },
+  "steps": [
+    {
+      "name": "0200-one",
+      "forward": [
+        "INSERT INTO requirements(id,level,status,text) VALUES('ONE','system','current','First')"
+      ],
+      "backward": [
+        "DELETE FROM requirements WHERE id='ONE'"
+      ]
+    },
+    {
+      "name": "0201-two",
+      "forward": [
+        "INSERT INTO requirements(id,level,status,text) VALUES('TWO','system','current','Second')"
+      ],
+      "backward": [
+        "DELETE FROM requirements WHERE id='TWO'"
+      ]
+    },
+    {
+      "name": "0202-three",
+      "forward": [
+        "INSERT INTO requirements(id,level,status,text) VALUES('THREE','system','current','Third')"
+      ],
+      "backward": [
+        "DELETE FROM requirements WHERE id='THREE'"
+      ]
+    }
+  ],
+  "task_rows_query": "SELECT id,status,stage_index,iteration,claimed_by,version,current_submission_id,metadata FROM tasks ORDER BY id",
+  "task_journal_query": "SELECT seq,at,session_id,task_id,event,data FROM journal ORDER BY seq",
+  "history_log_query": "SELECT migration_id,operation FROM _poise_requirements_data_log ORDER BY created_at_utc,rowid",
+  "roundtrip_log": [
+    [
+      "0200-one",
+      "apply"
+    ],
+    [
+      "0200-one",
+      "rollback"
+    ],
+    [
+      "0200-one",
+      "apply"
+    ]
+  ],
+  "ancillary_sql": [
+    "INSERT INTO domain_areas(id,business_name,definition) VALUES('D','Domain','Preserve')",
+    "INSERT INTO domain_entities(id,domain_id,business_name,code_name,definition) VALUES('E','D','Entity','entity','Preserve')",
+    "INSERT INTO domain_actions(id,domain_id,business_name,code_name,definition) VALUES('A','D','Action','action','Preserve')",
+    "INSERT INTO requirement_entities(requirement_id,domain_id,entity_id) VALUES('ONE','D','E')",
+    "INSERT INTO requirement_actions(requirement_id,domain_id,action_id) VALUES('ONE','D','A')",
+    "INSERT INTO requirement_requests(request_id,digest,response) VALUES('request','digest','response')"
+  ],
+  "export_expected": {
+    "all": {
+      "requirements": [
+        [
+          "APP-A",
+          "application",
+          "current",
+          "Application A"
+        ],
+        [
+          "SYS-A",
+          "system",
+          "current",
+          "Кавычка ' и точка; COMMIT\nROLLBACK остаются текстом"
+        ],
+        [
+          "SYS-UNRELATED",
+          "system",
+          "current",
+          "Excluded from partial transfer"
+        ]
+      ],
+      "requirement_links": [
+        [
+          "SYS-A",
+          "APP-A"
+        ]
+      ],
+      "requirements_meta": [
+        [
+          17
+        ]
+      ],
+      "requirement_requests": [
+        [
+          "request-A",
+          "digest-A",
+          "{\"text\":\"Служебное; значение ' COMMIT\"}"
+        ]
+      ],
+      "domain_areas": [
+        [
+          "D-A",
+          "Планирование",
+          "Область A"
+        ]
+      ],
+      "domain_entities": [
+        [
+          "E-A",
+          "D-A",
+          "Документ",
+          "document",
+          "Сущность A"
+        ]
+      ],
+      "domain_actions": [
+        [
+          "ACT-A",
+          "D-A",
+          "Согласовать",
+          "approve",
+          "Действие A"
+        ]
+      ],
+      "requirement_entities": [
+        [
+          "APP-A",
+          "D-A",
+          "E-A"
+        ]
+      ],
+      "requirement_actions": [
+        [
+          "APP-A",
+          "D-A",
+          "ACT-A"
+        ]
+      ]
+    },
+    "selected": {
+      "requirements": [
+        [
+          "APP-A",
+          "application",
+          "current",
+          "Application A"
+        ],
+        [
+          "SYS-A",
+          "system",
+          "current",
+          "Кавычка ' и точка; COMMIT\nROLLBACK остаются текстом"
+        ]
+      ],
+      "requirement_links": [
+        [
+          "SYS-A",
+          "APP-A"
+        ]
+      ],
+      "requirements_meta": [
+        [
+          0
+        ]
+      ],
+      "requirement_requests": [],
+      "domain_areas": [
+        [
+          "D-A",
+          "Планирование",
+          "Область A"
+        ]
+      ],
+      "domain_entities": [
+        [
+          "E-A",
+          "D-A",
+          "Документ",
+          "document",
+          "Сущность A"
+        ]
+      ],
+      "domain_actions": [
+        [
+          "ACT-A",
+          "D-A",
+          "Согласовать",
+          "approve",
+          "Действие A"
+        ]
+      ],
+      "requirement_entities": [
+        [
+          "APP-A",
+          "D-A",
+          "E-A"
+        ]
+      ],
+      "requirement_actions": [
+        [
+          "APP-A",
+          "D-A",
+          "ACT-A"
+        ]
+      ]
+    }
+  },
+  "schema_reference": [
+    {
+      "type": "table",
+      "name": "domain_actions",
+      "tbl_name": "domain_actions",
+      "sql": "CREATE TABLE domain_actions(id TEXT NOT NULL COLLATE BINARY CHECK(length(trim(id,char(9,10,11,12,13,28,29,30,31,32,133,160,5760,8192,8193,8194,8195,8196,8197,8198,8199,8200,8201,8202,8232,8233,8239,8287,12288)))>0 AND id=trim(id,char(9,10,11,12,13,28,29,30,31,32,133,160,5760,8192,8193,8194,8195,8196,8197,8198,8199,8200,8201,8202,8232,8233,8239,8287,12288))),domain_id TEXT NOT NULL COLLATE BINARY CHECK(length(trim(domain_id,char(9,10,11,12,13,28,29,30,31,32,133,160,5760,8192,8193,8194,8195,8196,8197,8198,8199,8200,8201,8202,8232,8233,8239,8287,12288)))>0 AND domain_id=trim(domain_id,char(9,10,11,12,13,28,29,30,31,32,133,160,5760,8192,8193,8194,8195,8196,8197,8198,8199,8200,8201,8202,8232,8233,8239,8287,12288))),business_name TEXT NOT NULL COLLATE BINARY CHECK(length(trim(business_name,char(9,10,11,12,13,28,29,30,31,32,133,160,5760,8192,8193,8194,8195,8196,8197,8198,8199,8200,8201,8202,8232,8233,8239,8287,12288)))>0 AND business_name=trim(business_name,char(9,10,11,12,13,28,29,30,31,32,133,160,5760,8192,8193,8194,8195,8196,8197,8198,8199,8200,8201,8202,8232,8233,8239,8287,12288))),code_name TEXT NOT NULL COLLATE BINARY CHECK(length(trim(code_name,char(9,10,11,12,13,28,29,30,31,32,133,160,5760,8192,8193,8194,8195,8196,8197,8198,8199,8200,8201,8202,8232,8233,8239,8287,12288)))>0 AND code_name=trim(code_name,char(9,10,11,12,13,28,29,30,31,32,133,160,5760,8192,8193,8194,8195,8196,8197,8198,8199,8200,8201,8202,8232,8233,8239,8287,12288))),definition TEXT NOT NULL COLLATE BINARY CHECK(length(trim(definition,char(9,10,11,12,13,28,29,30,31,32,133,160,5760,8192,8193,8194,8195,8196,8197,8198,8199,8200,8201,8202,8232,8233,8239,8287,12288)))>0),PRIMARY KEY(id),UNIQUE(domain_id,id),UNIQUE(domain_id,business_name),UNIQUE(domain_id,code_name),FOREIGN KEY(domain_id) REFERENCES domain_areas(id))"
+    },
+    {
+      "type": "table",
+      "name": "domain_areas",
+      "tbl_name": "domain_areas",
+      "sql": "CREATE TABLE domain_areas(id TEXT NOT NULL COLLATE BINARY CHECK(length(trim(id,char(9,10,11,12,13,28,29,30,31,32,133,160,5760,8192,8193,8194,8195,8196,8197,8198,8199,8200,8201,8202,8232,8233,8239,8287,12288)))>0 AND id=trim(id,char(9,10,11,12,13,28,29,30,31,32,133,160,5760,8192,8193,8194,8195,8196,8197,8198,8199,8200,8201,8202,8232,8233,8239,8287,12288))),business_name TEXT NOT NULL COLLATE BINARY CHECK(length(trim(business_name,char(9,10,11,12,13,28,29,30,31,32,133,160,5760,8192,8193,8194,8195,8196,8197,8198,8199,8200,8201,8202,8232,8233,8239,8287,12288)))>0 AND business_name=trim(business_name,char(9,10,11,12,13,28,29,30,31,32,133,160,5760,8192,8193,8194,8195,8196,8197,8198,8199,8200,8201,8202,8232,8233,8239,8287,12288))),definition TEXT NOT NULL COLLATE BINARY CHECK(length(trim(definition,char(9,10,11,12,13,28,29,30,31,32,133,160,5760,8192,8193,8194,8195,8196,8197,8198,8199,8200,8201,8202,8232,8233,8239,8287,12288)))>0),PRIMARY KEY(id),UNIQUE(business_name))"
+    },
+    {
+      "type": "table",
+      "name": "domain_entities",
+      "tbl_name": "domain_entities",
+      "sql": "CREATE TABLE domain_entities(id TEXT NOT NULL COLLATE BINARY CHECK(length(trim(id,char(9,10,11,12,13,28,29,30,31,32,133,160,5760,8192,8193,8194,8195,8196,8197,8198,8199,8200,8201,8202,8232,8233,8239,8287,12288)))>0 AND id=trim(id,char(9,10,11,12,13,28,29,30,31,32,133,160,5760,8192,8193,8194,8195,8196,8197,8198,8199,8200,8201,8202,8232,8233,8239,8287,12288))),domain_id TEXT NOT NULL COLLATE BINARY CHECK(length(trim(domain_id,char(9,10,11,12,13,28,29,30,31,32,133,160,5760,8192,8193,8194,8195,8196,8197,8198,8199,8200,8201,8202,8232,8233,8239,8287,12288)))>0 AND domain_id=trim(domain_id,char(9,10,11,12,13,28,29,30,31,32,133,160,5760,8192,8193,8194,8195,8196,8197,8198,8199,8200,8201,8202,8232,8233,8239,8287,12288))),business_name TEXT NOT NULL COLLATE BINARY CHECK(length(trim(business_name,char(9,10,11,12,13,28,29,30,31,32,133,160,5760,8192,8193,8194,8195,8196,8197,8198,8199,8200,8201,8202,8232,8233,8239,8287,12288)))>0 AND business_name=trim(business_name,char(9,10,11,12,13,28,29,30,31,32,133,160,5760,8192,8193,8194,8195,8196,8197,8198,8199,8200,8201,8202,8232,8233,8239,8287,12288))),code_name TEXT NOT NULL COLLATE BINARY CHECK(length(trim(code_name,char(9,10,11,12,13,28,29,30,31,32,133,160,5760,8192,8193,8194,8195,8196,8197,8198,8199,8200,8201,8202,8232,8233,8239,8287,12288)))>0 AND code_name=trim(code_name,char(9,10,11,12,13,28,29,30,31,32,133,160,5760,8192,8193,8194,8195,8196,8197,8198,8199,8200,8201,8202,8232,8233,8239,8287,12288))),definition TEXT NOT NULL COLLATE BINARY CHECK(length(trim(definition,char(9,10,11,12,13,28,29,30,31,32,133,160,5760,8192,8193,8194,8195,8196,8197,8198,8199,8200,8201,8202,8232,8233,8239,8287,12288)))>0),PRIMARY KEY(id),UNIQUE(domain_id,id),UNIQUE(domain_id,business_name),UNIQUE(domain_id,code_name),FOREIGN KEY(domain_id) REFERENCES domain_areas(id))"
+    },
+    {
+      "type": "table",
+      "name": "requirement_actions",
+      "tbl_name": "requirement_actions",
+      "sql": "CREATE TABLE requirement_actions(requirement_id TEXT NOT NULL,domain_id TEXT NOT NULL,action_id TEXT NOT NULL,PRIMARY KEY(requirement_id,domain_id,action_id),FOREIGN KEY(requirement_id) REFERENCES requirements(id) ON DELETE NO ACTION,FOREIGN KEY(domain_id,action_id) REFERENCES domain_actions(domain_id,id))"
+    },
+    {
+      "type": "table",
+      "name": "requirement_entities",
+      "tbl_name": "requirement_entities",
+      "sql": "CREATE TABLE requirement_entities(requirement_id TEXT NOT NULL,domain_id TEXT NOT NULL,entity_id TEXT NOT NULL,PRIMARY KEY(requirement_id,domain_id,entity_id),FOREIGN KEY(requirement_id) REFERENCES requirements(id) ON DELETE NO ACTION,FOREIGN KEY(domain_id,entity_id) REFERENCES domain_entities(domain_id,id))"
+    },
+    {
+      "type": "table",
+      "name": "requirement_links",
+      "tbl_name": "requirement_links",
+      "sql": "CREATE TABLE requirement_links(system_id TEXT NOT NULL REFERENCES requirements(id), application_id TEXT NOT NULL REFERENCES requirements(id), PRIMARY KEY(system_id,application_id))"
+    },
+    {
+      "type": "table",
+      "name": "requirement_requests",
+      "tbl_name": "requirement_requests",
+      "sql": "CREATE TABLE requirement_requests(request_id TEXT PRIMARY KEY, digest TEXT NOT NULL, response TEXT NOT NULL)"
+    },
+    {
+      "type": "table",
+      "name": "requirements",
+      "tbl_name": "requirements",
+      "sql": "CREATE TABLE requirements(id TEXT PRIMARY KEY, level TEXT NOT NULL, status TEXT NOT NULL, text TEXT NOT NULL)"
+    },
+    {
+      "type": "table",
+      "name": "requirements_meta",
+      "tbl_name": "requirements_meta",
+      "sql": "CREATE TABLE requirements_meta(revision INTEGER NOT NULL)"
+    }
+  ],
+  "schema_query": "SELECT name,sql FROM sqlite_schema WHERE type='table' ORDER BY name",
+  "replay_expected": {
+    "requirements": [
+      [
+        "APP-A",
+        "application",
+        "current",
+        "Application A"
+      ],
+      [
+        "SYS-A",
+        "system",
+        "current",
+        "Кавычка ' и точка; COMMIT\nROLLBACK остаются текстом"
+      ],
+      [
+        "SYS-UNRELATED",
+        "system",
+        "current",
+        "Excluded from partial transfer"
+      ]
+    ],
+    "requirement_links": [
+      [
+        "SYS-A",
+        "APP-A"
+      ]
+    ],
+    "requirements_meta": [
+      [
+        17
+      ]
+    ],
+    "requirement_requests": [
+      [
+        "request-A",
+        "digest-A",
+        "{\"text\":\"Служебное; значение ' COMMIT\"}"
+      ]
+    ],
+    "domain_areas": [
+      [
+        "D-A",
+        "Планирование",
+        "Область A"
+      ]
+    ],
+    "domain_entities": [
+      [
+        "E-A",
+        "D-A",
+        "Документ",
+        "document",
+        "Сущность A"
+      ]
+    ],
+    "domain_actions": [
+      [
+        "ACT-A",
+        "D-A",
+        "Согласовать",
+        "approve",
+        "Действие A"
+      ]
+    ],
+    "requirement_entities": [
+      [
+        "APP-A",
+        "D-A",
+        "E-A"
+      ]
+    ],
+    "requirement_actions": [
+      [
+        "APP-A",
+        "D-A",
+        "ACT-A"
+      ]
+    ]
+  },
+  "replay_forward": [
+    "DELETE FROM requirements_meta",
+    "INSERT INTO requirements(id,level,status,text) VALUES('APP-A','application','current','Application A')",
+    "INSERT INTO requirements(id,level,status,text) VALUES('SYS-A','system','current','Кавычка '' и точка; COMMIT\nROLLBACK остаются текстом')",
+    "INSERT INTO requirements(id,level,status,text) VALUES('SYS-UNRELATED','system','current','Excluded from partial transfer')",
+    "INSERT INTO domain_areas(id,business_name,definition) VALUES('D-A','Планирование','Область A')",
+    "INSERT INTO domain_entities(id,domain_id,business_name,code_name,definition) VALUES('E-A','D-A','Документ','document','Сущность A')",
+    "INSERT INTO domain_actions(id,domain_id,business_name,code_name,definition) VALUES('ACT-A','D-A','Согласовать','approve','Действие A')",
+    "INSERT INTO requirement_links(system_id,application_id) VALUES('SYS-A','APP-A')",
+    "INSERT INTO requirement_entities(requirement_id,domain_id,entity_id) VALUES('APP-A','D-A','E-A')",
+    "INSERT INTO requirement_actions(requirement_id,domain_id,action_id) VALUES('APP-A','D-A','ACT-A')",
+    "INSERT INTO requirement_requests(request_id,digest,response) VALUES('request-A','digest-A','{\"text\":\"Служебное; значение '' COMMIT\"}')",
+    "INSERT INTO requirements_meta(revision) VALUES(17)"
+  ],
+  "replay_backward": [
+    "INSERT INTO requirements_meta(revision) VALUES(0)",
+    "DELETE FROM requirements",
+    "DELETE FROM requirements",
+    "DELETE FROM requirements",
+    "DELETE FROM domain_areas",
+    "DELETE FROM domain_entities",
+    "DELETE FROM domain_actions",
+    "DELETE FROM requirement_links",
+    "DELETE FROM requirement_entities",
+    "DELETE FROM requirement_actions",
+    "DELETE FROM requirement_requests",
+    "DELETE FROM requirements_meta"
+  ]
+}

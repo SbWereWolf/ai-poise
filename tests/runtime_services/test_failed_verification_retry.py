@@ -35,7 +35,8 @@ def verify(tools, payload, retry=None):
     return tools.invoke(request("verify", args))
 
 
-def setup_failed_candidate(project, limit=3, interrupt=None):
+def setup_failed_candidate(project, limit=3, interrupt=None, *,
+                           correction_ids=(("F1", "R1"),), inspection_corrective_target="author"):
     counter = configure(project, mode="same_role")
     state = project["root"] / "external-verification-state.txt"
     state.write_text("ready\n", encoding="utf-8")
@@ -54,6 +55,7 @@ def setup_failed_candidate(project, limit=3, interrupt=None):
     verification.update(id="verification", rework_targets=["verification"])
     initial["transitions"] = {"complete": "audit"}
     correction["transitions"] = {"complete": "verification"}
+    review["transitions"]["changes_requested"] = inspection_corrective_target
     workflow["stages"] = [initial, audit, correction, verification, review]
     write_json(project["root"] / "config/workflows/development.json", workflow)
     task = project["task"]
@@ -80,7 +82,7 @@ def setup_failed_candidate(project, limit=3, interrupt=None):
     reviewer, _ = receiver(project)
     context = reviewer.invoke(request("advance", enter_review))
     review = result(context, "Independent fixture finding.")
-    review["stage_work"] = inspect([finding()])
+    review["stage_work"] = inspect([finding(finding_id) for finding_id, _ in correction_ids])
     assert verify(reviewer, review)["stage_outcome"] == "changes_requested"
     enter_author = {"task_id": "T1", "request_id": "fixture-correction", "target_stage": "next_work"}
     assert reviewer.invoke(request("advance", enter_author))["status"] == "role_handoff_required"
@@ -90,7 +92,10 @@ def setup_failed_candidate(project, limit=3, interrupt=None):
     }))
     context = author.invoke(request("advance", enter_author))
     correction_result = result(context, "Candidate correction awaiting independent inspection.")
-    correction_result["stage_work"] = {"resolutions": [resolution()]}
+    correction_result["stage_work"] = {
+        "resolutions": [resolution(resolution_id, finding_id)
+                        for finding_id, resolution_id in correction_ids],
+    }
     assert verify(author, correction_result)["status"] == "verified"
     context = author.invoke(request("advance", {
         "task_id": "T1", "request_id": "fixture-verify-correction", "target_stage": "verification",

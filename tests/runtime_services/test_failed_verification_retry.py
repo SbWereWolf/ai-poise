@@ -36,7 +36,8 @@ def verify(tools, payload, retry=None):
 
 
 def setup_failed_candidate(project, limit=3, interrupt=None, *,
-                           correction_ids=(("F1", "R1"),), inspection_corrective_target="author"):
+                           correction_ids=(("F1", "R1"),), inspection_corrective_target="author",
+                           correction_evidence=False):
     counter = configure(project, mode="same_role")
     state = project["root"] / "external-verification-state.txt"
     state.write_text("ready\n", encoding="utf-8")
@@ -96,6 +97,11 @@ def setup_failed_candidate(project, limit=3, interrupt=None, *,
         "resolutions": [resolution(resolution_id, finding_id)
                         for finding_id, resolution_id in correction_ids],
     }
+    if correction_evidence:
+        evidence = Path(context["task_root"]) / "artifacts" / "fixture-corrections.txt"
+        evidence.parent.mkdir(exist_ok=True)
+        evidence.write_text("Frozen evidence for R1, R2 and R3.\n", encoding="utf-8")
+        correction_result["artifact_paths"] = [str(evidence)]
     assert verify(author, correction_result)["status"] == "verified"
     context = author.invoke(request("advance", {
         "task_id": "T1", "request_id": "fixture-verify-correction", "target_stage": "verification",

@@ -10,6 +10,8 @@ class InitialSessionStartProjection(InitialHookProjection):
 
 
 class InitialSessionStartResult:
+    event_name = 'SessionStart'
+
     def __init__(self):
         self.response, self.parts, self.diagnostics = {}, {}, []
         self.failed, self.blocking = False, False
@@ -23,8 +25,8 @@ class InitialSessionStartResult:
             return
         for key, value in result.items():
             if key == 'hookSpecificOutput':
-                if not isinstance(value, dict) or value.get('hookEventName') != 'SessionStart':
-                    raise DomainError('Invalid SessionStart native response')
+                if not isinstance(value, dict) or value.get('hookEventName') != self.event_name:
+                    raise DomainError('Invalid ' + self.event_name + ' native response')
                 for field, content in value.items():
                     if field == 'additionalContext':
                         self._part(field, content)
@@ -56,10 +58,10 @@ class InitialSessionStartResult:
                 if key.startswith('hookSpecificOutput.')}
         for key, values in self.parts.items():
             if key == 'additionalContext':
-                hook.update(hookEventName='SessionStart', additionalContext='\n'.join(values))
+                hook.update(hookEventName=self.event_name, additionalContext='\n'.join(values))
             else:
                 result[key] = '\n'.join(values)
         if hook:
-            hook.setdefault('hookEventName', 'SessionStart')
+            hook.setdefault('hookEventName', self.event_name)
             result['hookSpecificOutput'] = hook
         return result, b''.join(self.diagnostics), 2 if self.blocking else 1 if self.failed else 0

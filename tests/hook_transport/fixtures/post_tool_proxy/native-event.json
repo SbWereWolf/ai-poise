@@ -1,0 +1,12 @@
+{
+  "hook_event_name": "PostToolUse",
+  "session_id": "proxy-fixture-session",
+  "cwd": "fixture-replaced",
+  "transcript_path": null,
+  "tool_name": "Bash",
+  "tool_use_id": "post-tool-native-call",
+  "source": "not-a-tool-matcher",
+  "tool_input": {"command": "printf 'НЕ ИСПОЛНЯТЬ'", "future_argument": "quoted \"text\""},
+  "tool_response": {"stdout": "native tool output", "stderr": "", "exit_code": 0},
+  "fixture_extension": {"unknown": [1, "Unicode: Ж", null]}
+}

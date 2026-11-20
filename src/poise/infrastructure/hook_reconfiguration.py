@@ -95,7 +95,8 @@ def _prepare(service, proposed, definition, packet, request_digest, locks):
             continue
         if (state['owner_settings_path'] == str(source.path)
                 and proposed.raw['source_root'] != source.raw['source_root']):
-            operation = {'SessionStart': 'session-start-proxy', 'PreToolUse': 'pre-tool-use-proxy'}[event]
+            operation = {'SessionStart': 'session-start-proxy', 'PreToolUse': 'pre-tool-use-proxy',
+                         'PostToolUse': 'post-tool-use-proxy'}[event]
             raise PoiseError('Active ' + event + ' coordinator source cannot change: use runtime-config '
                 '--settings ' + str(source.path) + ' with ' + operation + ' action restore, '
                 'then read the current revision and resubmit reconfigure before publishing again')
@@ -155,6 +156,8 @@ def _prepare(service, proposed, definition, packet, request_digest, locks):
                  'installation_after': encoded({**installation, 'groups': groups, 'receipt': receipt}), 'receipt': receipt}
     if 'PreToolUse' in proxy_states:
         operation['pre_tool_proxy_after'] = proxy_states['PreToolUse']
+    if 'PostToolUse' in proxy_states:
+        operation['post_tool_proxy_after'] = proxy_states['PostToolUse']
     with service.registry.transaction() as db:
         current = db.execute('SELECT data FROM installations WHERE id=?', (definition.data['id'],)).fetchone()
         if current is None or current[0] != installed_raw or _bindings(db, source.path) != bindings:
@@ -254,7 +257,8 @@ def _publish(service, proposed, definition, operation):
     revision = transport.FileHookRepository(proposed, service.registry)._configuration_revision(
         operation['receipt']['revision'], {definition.data['id']: definition.data}, settings_raw=proposed.raw,
         proxy_snapshot=operation.get('proxy_after', ...),
-        pre_tool_proxy_snapshot=operation.get('pre_tool_proxy_after', ...))
+        pre_tool_proxy_snapshot=operation.get('pre_tool_proxy_after', ...),
+        post_tool_proxy_snapshot=operation.get('post_tool_proxy_after', ...))
     if revision != operation['receipt']['configuration_revision']:
         raise PoiseError('Pending reconfiguration inputs changed; restore the recorded handler/project inputs and retry')
     with service.registry.transaction() as db:

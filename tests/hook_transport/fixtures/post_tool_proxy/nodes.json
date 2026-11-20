@@ -1,0 +1,52 @@
+{
+  "controls": [
+    "tests/hook_transport/test_post_tool_proxy_controls.py::test_old_foreign_metric_accepts_complete_native_input_and_can_stay_background",
+    "tests/hook_transport/test_post_tool_proxy_controls.py::test_actual_native_post_delivery_and_original_binding_refusal[unbound]",
+    "tests/hook_transport/test_post_tool_proxy_controls.py::test_actual_native_post_delivery_and_original_binding_refusal[poise-bound]",
+    "tests/hook_transport/test_post_tool_proxy_controls.py::test_actual_native_post_delivery_and_original_binding_refusal[erp-bound]",
+    "tests/hook_transport/test_post_tool_proxy_controls.py::test_old_sync_control_and_full_streams_are_fixture_effects",
+    "tests/hook_transport/test_post_tool_proxy_controls.py::test_real_native_tool_result_control[audit]",
+    "tests/hook_transport/test_post_tool_proxy_controls.py::test_real_native_tool_result_control[enforce]",
+    "tests/hook_transport/test_post_tool_proxy_controls.py::test_popen_observer_delegates_an_existing_working_proxy_without_inventing_failure",
+    "tests/hook_transport/test_post_tool_proxy_controls.py::test_distinct_project_task_stores_resolve_native_assignments_in_original_proxy",
+    "tests/hook_transport/test_post_tool_proxy_controls.py::test_interpreter_preserves_non_top_level_module_and_remaining_arguments"
+  ],
+  "proxy": [
+    "tests/hook_transport/test_initial_post_tool_proxy.py::test_single_post_entry_preserves_other_events_and_exact_logical_commands",
+    "tests/hook_transport/test_initial_post_tool_proxy.py::test_wildcard_foreign_and_empty_native_matchers_get_complete_raw_input[bash]",
+    "tests/hook_transport/test_initial_post_tool_proxy.py::test_wildcard_foreign_and_empty_native_matchers_get_complete_raw_input[read]",
+    "tests/hook_transport/test_initial_post_tool_proxy.py::test_wildcard_foreign_and_empty_native_matchers_get_complete_raw_input[mcp]",
+    "tests/hook_transport/test_initial_post_tool_proxy.py::test_supported_tool_regex_and_no_selection_are_independent_of_source_field",
+    "tests/hook_transport/test_initial_post_tool_proxy.py::test_malformed_matcher_refuses_before_partial_publication",
+    "tests/hook_transport/test_initial_post_tool_proxy.py::test_async_metric_does_not_delay_override_or_stop_sync_chain[success]",
+    "tests/hook_transport/test_initial_post_tool_proxy.py::test_async_metric_does_not_delay_override_or_stop_sync_chain[failure]",
+    "tests/hook_transport/test_initial_post_tool_proxy.py::test_foreign_launch_failure_is_diagnostic_and_never_stops_later_sync_commands",
+    "tests/hook_transport/test_initial_post_tool_proxy.py::test_sync_failure_does_not_invent_control_and_keeps_complete_capture[first-error]",
+    "tests/hook_transport/test_initial_post_tool_proxy.py::test_sync_failure_does_not_invent_control_and_keeps_complete_capture[later-two]",
+    "tests/hook_transport/test_initial_post_tool_proxy.py::test_sync_failure_does_not_invent_control_and_keeps_complete_capture[early-two]",
+    "tests/hook_transport/test_initial_post_tool_proxy.py::test_sync_protocol_or_launch_failure_still_runs_the_next_native_command[invalid-json]",
+    "tests/hook_transport/test_initial_post_tool_proxy.py::test_sync_protocol_or_launch_failure_still_runs_the_next_native_command[invalid-type]",
+    "tests/hook_transport/test_initial_post_tool_proxy.py::test_sync_protocol_or_launch_failure_still_runs_the_next_native_command[timeout]",
+    "tests/hook_transport/test_initial_post_tool_proxy.py::test_sync_protocol_or_launch_failure_still_runs_the_next_native_command[shell-127]",
+    "tests/hook_transport/test_initial_post_tool_proxy.py::test_sync_protocol_or_launch_failure_still_runs_the_next_native_command[spawn-exception]",
+    "tests/hook_transport/test_initial_post_tool_proxy.py::test_real_native_post_guards_and_delivery_are_preserved[unbound]",
+    "tests/hook_transport/test_initial_post_tool_proxy.py::test_real_native_post_guards_and_delivery_are_preserved[poise-bound]",
+    "tests/hook_transport/test_initial_post_tool_proxy.py::test_real_native_post_guards_and_delivery_are_preserved[erp-bound]",
+    "tests/hook_transport/test_initial_post_tool_proxy.py::test_foreign_receives_oversized_input_while_original_native_admission_refuses_it",
+    "tests/hook_transport/test_initial_post_tool_proxy.py::test_post_context_and_native_event_name_are_preserved",
+    "tests/hook_transport/test_initial_post_tool_proxy.py::test_revision_replay_and_restore_keep_existing_projections",
+    "tests/hook_transport/test_initial_post_tool_proxy.py::test_logical_member_update_preserves_three_projections_and_restores_latest_post",
+    "tests/hook_transport/test_initial_post_tool_proxy.py::test_interrupted_post_publication_replays_through_existing_owner",
+    "tests/hook_transport/test_initial_post_tool_proxy.py::test_real_native_tool_result_survives_proxy[audit]",
+    "tests/hook_transport/test_initial_post_tool_proxy.py::test_real_native_tool_result_survives_proxy[enforce]",
+    "tests/hook_transport/test_initial_post_tool_proxy.py::test_complete_captures_are_separate_per_session_and_cleanup_preserves_other_session",
+    "tests/hook_transport/test_initial_post_tool_proxy.py::test_same_file_reconfiguration_preserves_all_three_active_projections",
+    "tests/hook_transport/test_initial_post_tool_proxy.py::test_invalid_native_object_is_refused_without_running_callbacks",
+    "tests/hook_transport/test_initial_post_tool_proxy.py::test_distinct_project_task_stores_keep_post_capture_in_their_observed_assignment"
+  ],
+  "storage": [
+    "tests/hook_transport/test_initial_post_tool_proxy.py::test_late_worker_write_preserves_retired_capture_absence[completed]",
+    "tests/hook_transport/test_initial_post_tool_proxy.py::test_late_worker_write_preserves_retired_capture_absence[exception]",
+    "tests/hook_transport/test_initial_post_tool_proxy.py::test_late_worker_write_preserves_retired_capture_absence[during-write]"
+  ]
+}

@@ -195,10 +195,11 @@ class FailedVerificationInspection:
         invocations, key = runtime._verification_execution(data, tree, checks, workspace)
         batch = task.evidence_book.failed_batch(origin, task.state.iteration, task.state.submission_digest, tree, key)
         if batch is None or not any(
-            item['id'] == args['failed_check_id'] and item['guard'] and not item['passed'] and item['interpretable']
+            item['id'] == args['failed_check_id'] and item['guard'] and not item['passed']
             for item in batch['receipts']
         ):
             raise PoiseError('Failed receipt is unavailable for the current candidate commit and batch')
+        self.require_interpretable_batch(batch)
         if not runtime._intact_receipts(data['id'], batch['receipts'], invocations, tree):
             raise PoiseError('Failed check receipt evidence is missing or changed')
         submitted = [event for event in history if event['event'] == 'submitted'
@@ -252,6 +253,7 @@ class FailedVerificationInspection:
         )
         if batch is None or digest(batch) != frozen['batch']:
             raise PoiseError('Frozen failed receipt batch is unavailable or changed')
+        self.require_interpretable_batch(batch)
         recorded = runtime._recorded_check_receipts(data['id'])
         for receipt in batch['receipts']:
             method = next((item for item in data['contract']['methods']
@@ -281,6 +283,11 @@ class FailedVerificationInspection:
                    for field in ('path', 'digest', 'scope', 'owner'))
                for key, material in frozen['artifacts'].items()):
             raise PoiseError('Frozen correction artifact evidence is missing or changed')
+
+    @staticmethod
+    def require_interpretable_batch(batch):
+        if any(receipt['interpretable'] is not True for receipt in batch['receipts']):
+            raise PoiseError('Failed verification batch contains an uninterpretable result; establish its outcome before inspection')
 
     @staticmethod
     def require_route(task, origin, inspector, corrective):

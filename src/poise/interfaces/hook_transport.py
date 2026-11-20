@@ -92,6 +92,10 @@ def execute(command,args,stream,output,error, *, started_at=None):
             result = service.pre_tool_use_proxy(packet['input'])
             _write(service,result,output)
             return cfg['exit_codes']['rejected' if result['status'] == 'rejected' else 'success']
+        if packet['operation'] == 'post-tool-use-proxy':
+            result = service.post_tool_use_proxy(packet['input'])
+            _write(service,result,output)
+            return cfg['exit_codes']['rejected' if result['status'] == 'rejected' else 'success']
         if packet['operation'] in ('install','reconcile','reconfigure'):
             action=getattr(service,packet['operation'])
             result=action(packet['input'])
@@ -157,6 +161,8 @@ def setup(args,stream,output,error):
 def proxy_execute(args, stream, output, error):
     from ..application.session_start_proxy import InitialSessionStartProxy
     from ..application.pre_tool_use_proxy import InitialPreToolUseProxy
+    from ..application.post_tool_use_proxy import InitialPostToolUseProxy
+    from ..infrastructure.post_tool_use_proxy import PostToolUseMemberExecutor
     from ..infrastructure.session_start_proxy import snapshot, snapshot_path, SessionStartMemberExecutor, PROJECTIONS
     try:
         settings = HookSettings(args.settings)
@@ -171,16 +177,19 @@ def proxy_execute(args, stream, output, error):
             if state is None or not state['active']:
                 raise PoiseError(event_name + ' projection is inactive; reload current native registration')
             PROJECTIONS[event_name][1].logical(strict_json(settings.hooks_file.read_text()), state)
-        raw = stream.read(state['max_input_bytes'] + 1)
-        if len(raw) > state['max_input_bytes']:
+        limit = state['max_input_bytes']
+        raw = stream.read() if limit is None else stream.read(limit + 1)
+        if limit is not None and len(raw) > limit:
             raise PoiseError('Native proxy packet exceeds configured input limit')
         event = strict_json(raw.decode('utf-8'))
         if not isinstance(event, dict):
             raise PoiseError('Native hook JSON object required')
         if event.get('hook_event_name') != event_name:
             raise PoiseError('Native ' + event_name + ' object required')
-        proxy = {'SessionStart': InitialSessionStartProxy, 'PreToolUse': InitialPreToolUseProxy}[event_name]
-        result, diagnostics, code = proxy(SessionStartMemberExecutor(settings)).run(state, raw, event)
+        proxy = {'SessionStart': InitialSessionStartProxy, 'PreToolUse': InitialPreToolUseProxy,
+                 'PostToolUse': InitialPostToolUseProxy}[event_name]
+        executor = PostToolUseMemberExecutor(settings) if event_name == 'PostToolUse' else SessionStartMemberExecutor(settings)
+        result, diagnostics, code = proxy(executor).run(state, raw, event)
         text = utf8_json_text(result) + '\n'
         if len(text) > state['output_chars']:
             raise PoiseError('Composed native response exceeds admitted member output budgets')

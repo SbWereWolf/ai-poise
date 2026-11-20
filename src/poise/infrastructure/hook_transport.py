@@ -371,7 +371,7 @@ class FileHookRepository:
         p=self.settings.hooks_file
         return file_digest(p) if p.exists() else None
 
-    def _configuration_revision(self, native_revision, overrides=None, *, settings_raw=None, proxy_snapshot=..., proxy_snapshots=None, pre_tool_proxy_snapshot=...):
+    def _configuration_revision(self, native_revision, overrides=None, *, settings_raw=None, proxy_snapshot=..., proxy_snapshots=None, pre_tool_proxy_snapshot=..., post_tool_proxy_snapshot=...):
         """Full raw working inputs, independent of the native-file CAS token."""
         if native_revision is None:
             return None
@@ -417,13 +417,16 @@ class FileHookRepository:
             projections['SessionStart'] = proxy_snapshot
         if pre_tool_proxy_snapshot is not ...:
             projections['PreToolUse'] = pre_tool_proxy_snapshot
+        if post_tool_proxy_snapshot is not ...:
+            projections['PostToolUse'] = post_tool_proxy_snapshot
         value = {'native_file': native_revision, 'definitions': definitions,
                        'sources': sources, 'settings': (read_document(self.settings.path)
                            if settings_raw is None else settings_raw),
                        'project': project, 'association': association, 'task': task}
         for event, projection in projections.items():
             if projection is not None:
-                key = {'SessionStart': 'session_start_proxy', 'PreToolUse': 'pre_tool_use_proxy'}[event]
+                key = {'SessionStart': 'session_start_proxy', 'PreToolUse': 'pre_tool_use_proxy',
+                       'PostToolUse': 'post_tool_use_proxy'}[event]
                 value[key] = {k: v for k, v in projection.items() if k != 'publication'}
         return digest(value)
 
@@ -438,6 +441,10 @@ class FileHookRepository:
     def pre_tool_use_proxy(self, packet):
         from .session_start_proxy import publish
         return publish(self, packet, event_name='PreToolUse')
+
+    def post_tool_use_proxy(self, packet):
+        from .session_start_proxy import publish
+        return publish(self, packet, event_name='PostToolUse')
 
     def revision(self):
         return self._configuration_revision(self.native_revision())
@@ -630,7 +637,8 @@ class FileHookRepository:
         for event, state in proxy_states.items():
             if state['active']:
                 path = snapshot_path(s, event)
-                field = {'SessionStart': 'proxy_file', 'PreToolUse': 'pre_tool_proxy_file'}[event]
+                field = {'SessionStart': 'proxy_file', 'PreToolUse': 'pre_tool_proxy_file',
+                         'PostToolUse': 'post_tool_proxy_file'}[event]
                 operation[field] = {'path': str(path), 'before': path.read_bytes().hex(), 'after': proxy_body(state).hex()}
         if proof is not None:operation['prior_installation']=prior_installation
         return operation
@@ -669,7 +677,8 @@ class FileHookRepository:
             from .session_start_proxy import snapshots
             proxy_states = snapshots(s)
             projections = []
-            for event, field in (('SessionStart', 'proxy_file'), ('PreToolUse', 'pre_tool_proxy_file')):
+            for event, field in (('SessionStart', 'proxy_file'), ('PreToolUse', 'pre_tool_proxy_file'),
+                                 ('PostToolUse', 'post_tool_proxy_file')):
                 projection = operation.get(field)
                 if projection is not None:
                     proxy_states[event] = json.loads(bytes.fromhex(projection['after']))
@@ -742,6 +751,10 @@ class HookService:
     def pre_tool_use_proxy(self, packet):
         with self.project_fence.locked():
             return self.repository.pre_tool_use_proxy(packet)
+
+    def post_tool_use_proxy(self, packet):
+        with self.project_fence.locked():
+            return self.repository.post_tool_use_proxy(packet)
 
     def reconfigure(self, packet):
         from .hook_reconfiguration import reconfigure

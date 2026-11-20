@@ -8,9 +8,9 @@ import shlex
 import uuid
 
 from ..common import PoiseError, digest, encoded, exact_keys
-from ..execution import RegisteredCheckRunner, RegisteredLaunchFailure
 from ..modules.hook_transport.session_start_proxy import InitialSessionStartProjection
 from ..modules.hook_transport.pre_tool_use_proxy import InitialPreToolUseProjection
+from ..modules.hook_transport.post_tool_use_proxy import InitialPostToolUseProjection
 from ..modules.session_establishment.domain import CallerIdentity
 from ..modules.result_views.domain import utf8_json_text
 from .goal_config import read_document, strict_json
@@ -19,7 +19,8 @@ from .session_establishment import project_session_runtime_path, observed_projec
 
 
 PROJECTIONS = {'SessionStart': ('session-start', InitialSessionStartProjection),
-               'PreToolUse': ('pre-tool-use', InitialPreToolUseProjection)}
+               'PreToolUse': ('pre-tool-use', InitialPreToolUseProjection),
+               'PostToolUse': ('post-tool-use', InitialPostToolUseProjection)}
 
 
 def snapshot_path(settings, event_name='SessionStart'):
@@ -73,7 +74,7 @@ def project_document(settings, document, prior=None, settings_overrides=None, *,
     limits = projection.budgets(after['groups'])
     after['entry']['hooks'][0].update(timeout=limits['timeout'], additionalContextLimit=limits['context'])
     after['budgets'] = limits
-    after['max_input_bytes'], after['output_chars'] = original_limits(after['groups'], settings_overrides)
+    after['max_input_bytes'], after['output_chars'] = original_limits(after['groups'], settings_overrides, event_name=event_name)
     return projection.physical(document, after), after
 
 
@@ -99,11 +100,13 @@ def project_documents(settings, document, settings_overrides=None):
     return document, states
 
 
-def original_limits(groups, overrides=None):
+def original_limits(groups, overrides=None, *, event_name='SessionStart'):
     from .hook_transport import HookSettings
     admissions, outputs = [], []
     for group in groups:
         for handler in group['hooks']:
+            if event_name == 'PostToolUse' and handler.get('async', False):
+                continue
             tokens = shlex.split(handler['command'])
             try:
                 path = tokens[tokens.index('--settings') + 1]
@@ -115,7 +118,8 @@ def original_limits(groups, overrides=None):
                 raise PoiseError('Unknown initial callback producer; select its explicit Poise hook settings before publication') from exc
             admissions.append(settings.raw['max_input_bytes'])
             outputs.append(settings.raw['output_chars'])
-    return min(admissions), sum(outputs) + 6 * (len(outputs) - 1)
+    admission = None if event_name == 'PostToolUse' else min(admissions)
+    return admission, max(3, sum(outputs) + 6 * max(0, len(outputs) - 1))
 
 
 def publish(repository, packet, *, event_name='SessionStart'):
@@ -152,7 +156,7 @@ def publish(repository, packet, *, event_name='SessionStart'):
                     raise PoiseError(f'{event_name} proxy already active; use its current owner or restore before republishing')
                 groups = logical.get('hooks', {}).get(event_name, [])
                 budgets = projection.budgets(groups)
-                admission, output = original_limits(groups)
+                admission, output = original_limits(groups, event_name=event_name)
                 entry = {'matcher': '', 'hooks': [{'type': 'command',
                     'command': settings.command('hook-proxy', '--snapshot', str(snapshot_path(settings, event_name))),
                     'timeout': budgets['timeout'], 'additionalContextLimit': budgets['context'],
@@ -239,47 +243,23 @@ class SessionStartMemberExecutor:
         self.index = 0
         self.record = {'session_id': event['session_id'], 'assigned_session_id': assigned, 'invocation_id': self.directory.name, 'members': []}
 
-    def execute(self, position, handler):
-        from .goal_config import atomic_write
+    def reserve_member(self):
         directory = self.directory / str(self.index)
         self.index += 1
         directory.mkdir()
-        out, err = directory / 'stdout', directory / 'stderr'
-        runner = RegisteredCheckRunner(self.settings.raw['output_chars'])
-        exception = None
-        try:
-            with self.input.open('rb') as source:
-                execution = runner.run(uuid.uuid4().hex, ['/bin/sh', '-c', handler['command']],
-                    Path.cwd(), dict(os.environ), handler['timeout'], out, err,
-                    cleanup_seconds=self.configuration['budgets']['cleanup_seconds'], stdin_file=source)
-        except (RegisteredLaunchFailure, OSError) as exc:
-            exception = {'type': type(exc).__name__, 'message': str(exc),
-                         'cause': None if exc.__cause__ is None else str(exc.__cause__)}
-            execution = {'actual_exit_code': None, 'stdout': str(out), 'stderr': str(err),
-                         'capture_complete': isinstance(exc, RegisteredLaunchFailure) and out.is_file() and err.is_file(), 'exception': exception}
-        stdout = out.read_bytes() if out.exists() else b''
-        stderr = err.read_bytes() if err.exists() else b''
-        failed = exception is not None or execution['actual_exit_code'] != 0 or execution.get('timed_out', False) or not execution['capture_complete']
-        response, parse_error = None, None
-        if stdout or not failed:
-            try:
-                response = strict_json(stdout.decode('utf-8'))
-                if not isinstance(response, dict):
-                    raise PoiseError('Native member response must be an object')
-            except (PoiseError, ValueError, UnicodeError) as exc:
-                response, parse_error, failed = None, str(exc), True
-        diagnostic = stderr
-        if exception:
-            diagnostic += (exception['type'] + ': ' + exception['message'] + '\n').encode()
-        elif parse_error:
-            diagnostic += ('Invalid native member response: ' + parse_error + '\n').encode()
-        elif execution.get('timed_out') and not diagnostic:
-            diagnostic = b'Native member timed out\n'
-        self.record['members'].append({'position': position, 'command': handler['command'],
-            'execution': execution, 'response': response, 'parse_error': parse_error})
+        return directory
+
+    def save_record(self):
+        from .goal_config import atomic_write
         atomic_write(self.directory / 'result.json', body(self.record), self.settings.raw['file_mode'])
-        return {'exit_code': execution['actual_exit_code'], 'failed': failed,
-                'response': response, 'stderr': diagnostic}
+
+    def execute(self, position, handler):
+        from .initial_native_capture import capture_native_callback
+        member, outcome = capture_native_callback(self.settings, position, handler,
+            self.input, self.reserve_member(), self.configuration['budgets']['cleanup_seconds'])
+        self.record['members'].append(member)
+        self.save_record()
+        return outcome
 
 
 def retire_capture(settings, event, definition_path):

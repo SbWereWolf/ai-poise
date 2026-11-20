@@ -51,8 +51,9 @@ def read_document(path):
     return data
 
 
-def atomic_write(path: Path, content: bytes, mode: int):
-    path.parent.mkdir(parents=True, exist_ok=True)
+def atomic_write(path: Path, content: bytes, mode: int, *, create_parent=True):
+    if create_parent:
+        path.parent.mkdir(parents=True, exist_ok=True)
     temporary=None
     try:
         with tempfile.NamedTemporaryFile(dir=path.parent, delete=False) as stream:

@@ -4,6 +4,7 @@ from ..modules.work.domain import parse_request,read_range
 from ..modules.tasks.domain import is_terminal_task_status
 from ..modules.work.ports import WorkRuntime
 from ..modules.foundation.errors import PoiseError
+from .failed_verification_inspection import FailedVerificationInspection, limited_inspection
 
 
 class WorkTools:
@@ -33,16 +34,31 @@ class WorkTools:
             events[-1].identity if events else None,
         )
         try:
+            if (bound_before is not None and limited_inspection(bound_before.get('pending'))
+                    and (op in ('verify', 'handoff', 'advance', 'accept', 'reuse', 'cancel',
+                                'artifacts', 'artifact_drafts',
+                                'recover_empty_rework', 'recover_empty_advance', 'revise_stage_contract')
+                         or op == 'task' and args.get('task_id') == bound_before['id']
+                         or op == 'bootstrap' and args['decision'] is not None)):
+                raise PoiseError('Limited inspection requires its explicit decisions and corrective exit before ordinary work')
             if op=='delivery':out=h.delivery_tools.apply(args)
             elif op=='task_feedback':out=h.task_materials.apply(args)
             elif op=='task':out=h.task_action(args)
             elif op=='sprint':out=h.sprint_tools.apply(args)
             elif op=='bootstrap':
                 out=h.bootstrap(**args)
+                current_task = h.current_task() if out.get('handler') == 'inspect' else None
+                limited = current_task.get('pending') if current_task is not None else None
+                if limited_inspection(limited):
+                    out = {**out, 'limited_inspection': {
+                        'entry_request_id': limited.get('entry_request_id'),
+                        'decisions_recorded': bool(limited.get('decisions')),
+                    }, 'next_work': 'Continue the exact failed_verification_inspection request.'}
             elif op=='release':out=h.ownership.release(args)
             elif op=='recover_empty_rework':out=h.recover_empty_rework(**args)
             elif op=='recover_empty_advance':out=h.recover_empty_advance(**args)
             elif op=='advance':out=h.advance(**args)
+            elif op=='failed_verification_inspection':out=FailedVerificationInspection(h).apply(args)
             elif op=='recover_ownership':out=h.ownership.recover(args)
             elif op=='recover_artifacts':out=self.resources.recover_artifacts(args)
             elif op=='artifact_drafts':out=self.resources.artifact_drafts(args)
@@ -85,6 +101,8 @@ class WorkTools:
                 and h.sprint_tools.known(sprint_subject['sprint_id'])
                 and op in ('verify','reuse','accept','cancel')):
             out={**out,'sprint':h.sprint_tools.overview(sprint_subject['sprint_id'])}
+        if op == 'failed_verification_inspection':
+            return out  # Its committed receipt owns the original interaction snapshot.
         return {**out,'interaction':self.interactions.summary(None if ownership_recovery else h.report_task(out))}
 
     def _verify(self,args):

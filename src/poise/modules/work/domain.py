@@ -53,6 +53,7 @@ def parse_request(value, config):
     exact(value,{'operation','input','messages','telemetry'} if isinstance(value,dict) and 'telemetry' in value else {'operation','input','messages'},'work packet')
     shapes={'restore_context':{'reason','event_id','facts','cwd','reads'},'routing':{'facts'},'bootstrap':{'task','decision','feedback','rework_stage'},
             'verify':{'result','artifacts'},'handoff':None,'show':{'queries'},'accept':set(),
+            'failed_verification_inspection':None,
             'reuse':{'task_id','source_task_id','request_id','expected_version'},
             'release':{'task_id','request_id','expected_version','reason'},
             'recover_empty_rework':{'task_id','reason'},
@@ -116,6 +117,29 @@ def parse_request(value, config):
         for field in shapes[op]:
             if not isinstance(value['input'].get(field), str) or not value['input'][field].strip():
                 raise DomainError(f'advance {field} must be a nonempty string')
+    if op == 'failed_verification_inspection':
+        args = value['input']
+        action = args.get('action') if isinstance(args, dict) else None
+        if action == 'enter':
+            fields = {'failed_check_id', 'reason'}
+        elif action == 'decide':
+            fields = {'entry_request_id', 'decisions'}
+        elif action == 'exit':
+            fields = {'entry_request_id'} | ({'reason'} if 'reason' in args else set())
+        else:
+            raise DomainError('Unknown failed verification inspection action')
+        shapes[op] = {'action', 'request_id', 'task_id'} | fields
+        exact(args, shapes[op], 'failed verification inspection input')
+        for field in shapes[op] - {'decisions'}:
+            if not isinstance(args[field], str) or not args[field].strip() or '\0' in args[field]:
+                raise DomainError(f'failed verification inspection {field} must be a nonempty string')
+        if action == 'decide':
+            if not isinstance(args['decisions'], list) or not args['decisions']:
+                raise DomainError('Limited inspection decisions require a nonempty list')
+            for item in args['decisions']:
+                exact(item, {'resolution_id', 'decision', 'reason'}, 'limited inspection decision')
+                if any(not isinstance(v, str) or not v.strip() or '\0' in v for v in item.values()):
+                    raise DomainError('Limited inspection decision fields must be nonempty strings')
     if op in ('bootstrap','advance') and isinstance(value['input'],dict) and 'force_duplicate_start' in value['input']:
         if type(value['input']['force_duplicate_start']) is not bool:
             raise DomainError('force_duplicate_start must be boolean')
